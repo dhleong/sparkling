@@ -10,19 +10,28 @@
         (keyword (subs m 0 ns-separator)
                  (subs m (inc ns-separator)))))))
 
+(defn- invoke-handler [request-id handler params]
+  (-> (p/let [result (if (map? params)
+                       (handler params)
+                       (apply handler params))]
+        {:id request-id
+         :result result})
+
+      (p/catch (fn [e]
+                 {:id request-id
+                  :error {:code (if-let [data (ex-data e)]
+                                  (:error-code data)
+                                  (:internal errors))
+                          :message (or (ex-message e)
+                                       "Unexpected error")}}))))
+
 (defn create [handlers]
   (fn dispatch [request]
     (when-let [{:keys [id method params]} request]
-      (when-let [handler (get handlers (method->kw method))]
-        (-> (p/let [result (if (map? params)
-                               (handler params)
-                               (apply handler params))]
-              {:id id
-               :result result})
+      (if-let [handler (get handlers (method->kw method))]
+        (invoke-handler id handler params)
 
-            (p/catch (fn [e]
-                       ; TODO more descriptive error codes?
-                       {:id id
-                        :error {:code (:internal errors)
-                                :message (or (ex-message e)
-                                             "Unexpected error")}})))))))
+        ; no handler
+        {:id id
+         :error {:code (:method-not-found errors)
+                 :message (str method " is not supported")}}))))
