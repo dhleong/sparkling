@@ -1,0 +1,25 @@
+{:paths ["src"]
+
+ :deps
+ {org.clojure/clojure {:mvn/version "1.10.0"}
+
+  cheshire {:mvn/version "5.10.0"}
+  com.squareup.okio/okio {:mvn/version "2.5.0"}
+  funcool/promesa {:mvn/version "5.1.0"}
+  teknql/systemic {:mvn/version "0.1.0"}
+
+  com.rpl/specter {:mvn/version "1.1.3"}}
+
+ :aliases
+ {:dev {:extra-deps {cider/cider-nrepl {:mvn/version "0.24.0"}
+                     refactor-nrepl {:mvn/version "2.5.0"}}
+        :extra-paths ["test"]
+        :main-opts ["-m" "nrepl.cmdline"
+                    "--middleware" "[cider.nrepl/cider-middleware,refactor-nrepl.middleware/wrap-refactor]"]}
+
+  :test {:extra-paths ["test"]
+         :extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                 :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
+         :main-opts ["-m" "cognitect.test-runner"]}
+
+  :run {:main-opts ["-m" "sparkling.core"]}}}
