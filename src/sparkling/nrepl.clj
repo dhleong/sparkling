@@ -1,6 +1,7 @@
 (ns sparkling.nrepl
   (:require [nrepl.core :as nrepl]
             [promesa.core :as p]
+            [promesa.exec :as exec]
             [systemic.core :refer [defsys]]
             [sparkling.config :refer [*project-config*]]
             [sparkling.nrepl.core :as core]))
@@ -19,8 +20,16 @@
 
 ; ======= public interface ================================
 
-(defn message [message]
-  (core/message *nrepl* message))
+(defn message
+  "Send the given message to the nrepl server, returning a promise that
+   resolves to the response. If *nrepl* has not yet been initialized
+   (usually due to *project-config* not yet being resolved) this promise
+   will wait for *nrepl* to initialize before sending."
+  [msg]
+  (-> *nrepl*
+      (p/then (fn [conn]
+                (core/message conn msg))
+              exec/default-scheduler)))
 
 (defmacro evaluate [& code]
   (let [the-code `(nrepl/code ~@code)]

@@ -14,7 +14,7 @@
 (defn stop [conn]
   (.close conn))
 
-(defn message [conn message]
+(defn message [conn msg]
   (-> (nrepl/client conn message-timeout)
-      (nrepl/message message)
+      (nrepl/message msg)
       nrepl/response-values))
