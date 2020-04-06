@@ -1,5 +1,6 @@
 (ns sparkling.nrepl.core
   (:require [nrepl.core :as nrepl]
+            [sparkling.nrepl.detect :refer [detect-port]]
             [sparkling.spec.util :refer [validate]]
             [sparkling.spec :as spec]))
 
@@ -8,8 +9,14 @@
 (defn start [config]
   (validate ::spec/project-config config)
 
-  ; TODO detect the port
-  (nrepl/connect :port 63306))
+  (try
+    (let [[source port] (detect-port config)]
+      (println "Connecting to " source "@" port)
+      {:conn (nrepl/connect :port port)
+       :source source})
+    (catch Throwable e
+      (println e)
+      (throw e))))
 
 (defn stop [conn]
   (.close conn))

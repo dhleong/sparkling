@@ -7,8 +7,7 @@
             [sparkling.nrepl.core :as core]))
 
 (defsys *nrepl*
-  "This is a Promise that resolves to the nrepl connection,
-   since project config is also a Promsie"
+  "A Promise that resolves to the nrepl connection info map."
   :deps [*project-config*]
   :closure
   (let [server (-> *project-config*
@@ -27,8 +26,8 @@
    will wait for *nrepl* to initialize before sending."
   [msg]
   (-> *nrepl*
-      (p/then (fn [conn]
-                (core/message conn msg))
+      (p/then (fn [server]
+                (core/message (:conn server) msg))
               exec/default-scheduler)))
 
 (defmacro evaluate [& code]
