@@ -1,6 +1,7 @@
 (ns sparkling.core
   (:require [systemic.core :as systemic :refer [defsys]]
             [sparkling.handlers :as handlers]
+            [sparkling.lsp :as lsp-util]
             [sparkling.lsp.core :as lsp]))
 
 ; ======= system defs =====================================
@@ -15,24 +16,6 @@
     {:value value
      :stop stop}))
 
-(defn- lsp-instance []
-  (let [lsp *lsp*]
-    ; NOTE: the docs for systemic say its value should be what
-    ;  was returned in :value, but that does not seem to be the case
-    (if (:promise lsp)
-      lsp
-      (:value lsp))))
-
-; ======= public api ======================================
-
-(defn cancel-request! [request-id]
-  ((:cancel! (lsp-instance)) request-id))
-
-(defn notify! [message]
-  (if-let [send! (:notify (lsp-instance))]
-    (send! message)
-    (println "WARN: *lsp* not started yet")))
-
 
 ; ======= main ============================================
 
@@ -40,4 +23,4 @@
   (systemic/start!)
 
   ; wait forever
-  @(:promise (lsp-instance)))
+  @(:promise (lsp-util/instance)))

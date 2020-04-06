@@ -1,6 +1,6 @@
 (ns sparkling.handlers.base
-  (:require [sparkling.core :refer [cancel-request!]]
+  (:require [sparkling.lsp :as lsp]
             [sparkling.handlers.core :refer [defhandler]]))
 
 (defhandler :$/cancelRequest [{:keys [id]}]
-  (cancel-request! id))
+  (lsp/cancel-request! id))
