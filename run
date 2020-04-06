@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd "$(dirname "$0")"
-clj -A:run
+clj -A:run lsp --stdio

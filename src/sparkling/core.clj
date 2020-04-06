@@ -19,8 +19,16 @@
 
 ; ======= main ============================================
 
-(defn -main [& _args]
+(defn- run-lsp []
   (systemic/start!)
 
   ; wait forever
   @(:promise (lsp-util/instance)))
+
+(defn -main [& args]
+  (cond
+    (= ["lsp" "--stdio"] args) (run-lsp)
+
+    :else (do
+            (println "sparkling: invalid")
+            (System/exit 1))))
