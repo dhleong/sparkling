@@ -1,11 +1,6 @@
-(ns sparkling.lsp)
-
-(def ^:private get-*lsp*
-  (delay
-    (resolve 'sparkling.core/*lsp*)))
-
-(defn- instance []
-  @@get-*lsp*)
+(ns sparkling.lsp
+  (:require [systemic.core :refer [defsys]]
+            [sparkling.lsp.core :as core]))
 
 (defn- clean-message [message]
   (update message :method (fn [m]
@@ -17,14 +12,27 @@
 
 ; ======= public api ======================================
 
+(defsys *handlers*
+  ; NOTE: since handlers might want to call notify! etc,
+  ; we have to dynamically resolve the get-all var to
+  ; avoid a circular dependency
+  :start (@(resolve 'sparkling.handlers/get-all)))
+
+(defsys *lsp*
+  :deps [*handlers*]
+  :closure
+  (let [{:keys [stop] :as value} (core/start *handlers*)]
+    {:value value
+     :stop stop}))
+
 (defn cancel-request! [request-id]
-  ((:cancel! (instance)) request-id))
+  ((:cancel! *lsp*) request-id))
 
 (defn notify!
   ([method params] (notify! {:method method
                              :params params}))
   ([message]
-   (if-let [send! (:notify (instance))]
+   (if-let [send! (:notify *lsp*)]
      (send! (clean-message message))
      (println "WARN: *lsp* not started yet"))))
 

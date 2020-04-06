@@ -5,8 +5,8 @@
             [sparkling.handlers.base]
             [sparkling.handlers.general]
             [sparkling.handlers.text-sync]
-            [sparkling.handlers.workspace]
-            ))
+            [sparkling.handlers.workspace]))
 
 (defn get-all []
   @handlers)
+

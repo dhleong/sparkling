@@ -1,5 +1,7 @@
 (ns sparkling.handlers.general
-  (:require [sparkling.handlers.core :refer [defhandler]]
+  (:require [promesa.core :as p]
+            [sparkling.config :refer [*project-config*]]
+            [sparkling.handlers.core :refer [defhandler]]
             [sparkling.spec :as spec]
             [sparkling.spec.util :refer [validate]]))
 
@@ -8,7 +10,7 @@
 
   (let [config (validate ::spec/project-config
                          {:root-path rootPath})]
-    (println "TODO init *project-config*" config))
+    (p/resolve! *project-config* config))
 
   {:capabilities
    {:textDocumentSync {:openClose false

@@ -1,19 +1,26 @@
 (ns sparkling.nrepl
-  (:require [sparkling.nrepl.core :as core]
-            [nrepl.core :as nrepl]))
+  (:require [nrepl.core :as nrepl]
+            [promesa.core :as p]
+            [systemic.core :refer [defsys]]
+            [sparkling.config :refer [*project-config*]]
+            [sparkling.nrepl.core :as core]))
 
-(def ^:private get-*nrepl*
-  (delay
-    (resolve 'sparkling.core/*nrepl*)))
-
-(defn- instance []
-  @@get-*nrepl*)
+(defsys *nrepl*
+  "This is a Promise that resolves to the nrepl connection,
+   since project config is also a Promsie"
+  :deps [*project-config*]
+  :closure
+  (let [server (-> *project-config*
+                   (p/then core/start))]
+    {:value server
+     :stop #(when (p/resolved? server)
+              (core/stop server))}))
 
 
 ; ======= public interface ================================
 
 (defn message [message]
-  (core/message (instance) message))
+  (core/message *nrepl* message))
 
 (defmacro evaluate [& code]
   (let [the-code `(nrepl/code ~@code)]

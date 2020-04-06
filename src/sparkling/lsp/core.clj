@@ -5,6 +5,7 @@
             [sparkling.lsp.transport.stdio :as stdio]))
 
 (defn start [handlers]
+  (println "Start LSP with" (keys handlers))
   (server/start
     :dispatcher (dispatcher/create handlers)
     :transport (stdio/create
