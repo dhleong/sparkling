@@ -5,5 +5,7 @@
              :invalid-request -32600
              :method-not-found -32601
              :invalid-params -32602
-             :internal -32603})
+             :internal -32603
+
+             :cancelled -32800})
 

@@ -10,26 +10,41 @@
                         (str e))}})
 
 (defn start [& {:keys [transport dispatcher]}]
-  (let [done (p/deferred)]
+  (let [done (p/deferred)
+        running-requests (atom {})]
     {:stop #(p/resolve! done ::done)
 
      :notify (fn [notification]
                (write-message transport notification))
 
+     :cancel! (fn [request-id]
+                (let [req (get @running-requests request-id)]
+                  (swap! running-requests dissoc request-id)
+                  (write-message transport {:id request-id
+                                            :error {:code (:cancelled errors)
+                                                    :message "Request cancelled"}})
+                  (p/cancel! req)))
+
+     :running running-requests
+
      :promise (p/loop []
                 (p/let [next-packet (p/race [done
                                              (-> (read-request transport)
-                                                 (p/catch ->parse-error))])
-                        response (cond
-                                   (= ::done next-packet) nil
+                                                 (p/catch ->parse-error))])]
 
-                                   ; parse error:
-                                   (:error next-packet) next-packet
+                  (cond
+                    (= ::done next-packet) nil
 
-                                   :else (dispatcher next-packet))]
+                    ; parse error:
+                    (:error next-packet) (write-message transport next-packet)
 
-                  (when response
-                    (write-message transport response))
+                    :else (swap! running-requests
+                                 assoc
+                                 (:id next-packet)
+                                 (-> (dispatcher next-packet)
+                                     (p/then (fn [response]
+                                               (swap! running-requests dissoc (:id next-packet))
+                                               (write-message transport response))))))
 
                   (when-not (= ::done next-packet)
                     (p/recur))))}))

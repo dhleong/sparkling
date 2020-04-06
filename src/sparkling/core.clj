@@ -15,11 +15,21 @@
     {:value value
      :stop stop}))
 
+(defn- lsp-instance []
+  (let [lsp *lsp*]
+    ; NOTE: the docs for systemic say its value should be what
+    ;  was returned in :value, but that does not seem to be the case
+    (if (:promise lsp)
+      lsp
+      (:value lsp))))
 
 ; ======= public api ======================================
 
+(defn cancel-request! [request-id]
+  ((:cancel! (lsp-instance)) request-id))
+
 (defn notify! [message]
-  (if-let [send! (:notify *lsp*)]
+  (if-let [send! (:notify (lsp-instance))]
     (send! message)
     (println "WARN: *lsp* not started yet")))
 
@@ -30,7 +40,4 @@
   (systemic/start!)
 
   ; wait forever
-  ; NOTE: the docs for systemic say its value should be what
-  ;  was returned in :value, but that does not seem to be the case
-  @(or (:promise *lsp*)
-       (:promise (:value *lsp*))))
+  @(:promise (lsp-instance)))

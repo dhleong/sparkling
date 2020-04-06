@@ -3,4 +3,6 @@
            promesa.core/loop clojure.core/loop
            promesa.core/plet clojure.core/let
            promesa.core/recur clojure.core/recur
-}}
+
+           sparkling.handlers.core/defhandler clojure.core/defn
+           }}
