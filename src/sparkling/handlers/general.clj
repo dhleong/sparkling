@@ -1,8 +1,15 @@
 (ns sparkling.handlers.general
-  (:require [sparkling.handlers.core :refer [defhandler]]))
+  (:require [sparkling.handlers.core :refer [defhandler]]
+            [sparkling.spec :as spec]
+            [sparkling.spec.util :refer [validate]]))
 
-(defhandler :initialize [{:keys [_clientInfo capabilities _rootPath]}]
+(defhandler :initialize [{:keys [_clientInfo capabilities rootPath]}]
   (println ":initialize" capabilities)
+
+  (let [config (validate ::spec/project-config
+                         {:root-path rootPath})]
+    (println "TODO init *project-config*" config))
+
   {:capabilities
    {:textDocumentSync {:openClose false
 
