@@ -4,15 +4,22 @@
             [sparkling.lsp.transport.model :refer [read-request write-message]]))
 
 (defn- ->error [^Throwable e]
-  (if-let [data (ex-data e)]
-    {:id (:request-id e)
-     :error {:code (:error-code data (:internal errors))
-             :message (ex-message e)}}
+  (when (instance? java.io.EOFException e)
+    (throw e))
 
-    {:id 0
-     :error {:code (:parse errors)
-             :message (or (.getMessage e)
-                          (str e))}}))
+  (let [data (ex-data e)]
+    (cond
+      data {:id (:request-id e)
+            :error {:code (let [code (:error-code data (:internal errors))]
+                            (cond
+                              (keyword? code) (get errors code (:internal errors))
+                              :else code))
+                    :message (ex-message e)}}
+
+      :else {:id 0
+             :error {:code (:parse errors)
+                     :message (or (.getMessage e)
+                                  (str e))}})))
 
 (defn start [& {:keys [transport dispatcher]}]
   (let [done (p/deferred)
@@ -23,7 +30,8 @@
                (write-message transport notification))
 
      :cancel! (fn [request-id]
-                (let [req (get @running-requests request-id)]
+                (when-let [req (get @running-requests request-id)]
+                  (println "Canceling req: " request-id req)
                   (swap! running-requests dissoc request-id)
                   (write-message transport {:id request-id
                                             :error {:code (:cancelled errors)
@@ -37,12 +45,16 @@
                                                  done])
                                         (p/catch ->error))]
 
+                  (println "read #" (:id next-packet) (:method next-packet))
+
                   (cond
                     ; server was shutdown
                     (= ::done next-packet) nil
 
                     ; parse error:
-                    (:error next-packet) (write-message transport next-packet)
+                    (:error next-packet) (do
+                                           (println "Sending error: " next-packet)
+                                           (write-message transport next-packet))
 
                     ; normal case: defer handling so it can be cancelled
                     :else (swap! running-requests
@@ -52,7 +64,8 @@
                                      (p/catch ->error)
                                      (p/then (fn [response]
                                                (swap! running-requests dissoc (:id next-packet))
-                                               (write-message transport response))))))
+                                               (when (:id next-packet)
+                                                 (write-message transport response)))))))
 
                   (when-not (= ::done next-packet)
                     (p/recur))))}))

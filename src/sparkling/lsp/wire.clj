@@ -7,8 +7,9 @@
 
 (defn parse-in [^Source source]
   (loop [headers {}]
-    (let [line (.readUtf8Line source)]
-      (if-not (empty? line)
+    (let [line (.readUtf8LineStrict source)]
+      (cond
+        (not (str/blank? line))
         (recur (let [separator (.indexOf line ":")
                      header-name (subs line 0 separator)
                      header-value (subs line (inc separator))]
@@ -16,7 +17,12 @@
                         (keyword (str/lower-case header-name))
                         (str/trim header-value))))
 
-        (let [content-string (.readUtf8 source (Long/parseLong (:content-length headers)))
+        :else
+        (let [content-string (if-let [length (:content-length headers)]
+                               (.readUtf8 source (Long/parseLong length))
+                               (throw (ex-info "Missing Content-Length header"
+                                               {:error-code :parse
+                                                :headers headers})))
               content (parse-string content-string true)]
           (assoc content :sparkling/headers headers))))))
 

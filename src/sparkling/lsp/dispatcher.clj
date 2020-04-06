@@ -32,7 +32,9 @@
         (invoke-handler id handler params)
 
         ; no handler
-        (p/rejected
-          (ex-info (str method " is not supported")
-                   {:request-id id
-                    :error-code :method-not-found}))))))
+        (do
+          (println "Reject unsupported method: " method)
+          (p/rejected
+            (ex-info (str method " is not supported")
+                     {:request-id id
+                      :error-code :method-not-found})))))))

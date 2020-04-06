@@ -4,6 +4,8 @@
             [sparkling.lsp.transport.model :refer [ITransport]])
   (:import (java.util.concurrent Executors)))
 
+(def ^:private jsonrpc-version "2.0")
+
 (defonce ^:private executor-in (Executors/newSingleThreadExecutor))
 (defonce ^:private executor-out (Executors/newSingleThreadExecutor))
 
@@ -23,7 +25,7 @@
     (p/create
       (fn [p-resolve p-reject]
         (try
-          (format-out out message)
+          (format-out out (assoc message :jsonrpc jsonrpc-version))
           (p-resolve message)
           (catch Exception e
             (p-reject e))))
