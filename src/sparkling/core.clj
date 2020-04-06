@@ -1,7 +1,6 @@
 (ns sparkling.core
   (:require [systemic.core :as systemic :refer [defsys]]
             [sparkling.handlers :as handlers]
-            [sparkling.lsp :as lsp-util]
             [sparkling.lsp.core :as lsp]))
 
 ; ======= system defs =====================================
@@ -26,7 +25,7 @@
   (systemic/start!)
 
   ; wait forever
-  @(:promise (lsp-util/instance)))
+  @(:promise *lsp*))
 
 (defn -main [& args]
   (cond

@@ -4,13 +4,8 @@
   (delay
     (resolve 'sparkling.core/*lsp*)))
 
-(defn instance []
-  (let [lsp @@get-*lsp*]
-    ; NOTE: the docs for systemic say its value should be what
-    ;  was returned in :value, but that does not seem to be the case
-    (if (:promise lsp)
-      lsp
-      (:value lsp))))
+(defn- instance []
+  @@get-*lsp*)
 
 (defn- clean-message [message]
   (update message :method (fn [m]
