@@ -20,6 +20,9 @@
 ; ======= main ============================================
 
 (defn- run-lsp []
+  ; redirect stdout to stderr for debugging
+  (alter-var-root #'*out* (constantly *err*))
+
   (systemic/start!)
 
   ; wait forever

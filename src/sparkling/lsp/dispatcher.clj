@@ -32,6 +32,7 @@
         (invoke-handler id handler params)
 
         ; no handler
-        {:id id
-         :error {:code (:method-not-found errors)
-                 :message (str method " is not supported")}}))))
+        (p/rejected
+          (ex-info (str method " is not supported")
+                   {:request-id id
+                    :error-code :method-not-found}))))))
