@@ -7,3 +7,5 @@
    ::spec/project-config"
   :start (p/deferred))
 
+(defn lsp [lsp-key]
+  (get-in @*project-config* [:lsp lsp-key]))

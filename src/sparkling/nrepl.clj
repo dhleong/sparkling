@@ -14,7 +14,7 @@
                    (p/then core/start))]
     {:value server
      :stop #(when (p/resolved? server)
-              (core/stop server))}))
+              (core/stop @server))}))
 
 
 ; ======= public interface ================================
@@ -28,9 +28,20 @@
   (-> *nrepl*
       (p/then (fn [server]
                 (core/message (:conn server) msg))
-              exec/default-scheduler)))
+              exec/default-scheduler)
+      (p/then (fn [resp]
+                (if-let [err (:err resp)]
+                  (throw (ex-info err
+                                  (assoc resp :message msg)))
+
+                  resp)))))
+
+(defn evaluate* [code-str]
+  (-> (message {:op :eval
+                :code code-str})
+      (p/then (fn [resp]
+                (->> resp :value last read-string)))))
 
 (defmacro evaluate [& code]
   (let [the-code `(nrepl/code ~@code)]
-    `(message {:op "eval"
-               :code  ~the-code})))
+    `(evaluate* ~the-code)))

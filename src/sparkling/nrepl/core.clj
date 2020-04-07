@@ -24,4 +24,4 @@
 (defn message [conn msg]
   (-> (nrepl/client conn message-timeout)
       (nrepl/message msg)
-      nrepl/response-values))
+      nrepl/combine-responses))

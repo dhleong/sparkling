@@ -14,10 +14,14 @@
   (-> (p/let [result (if (map? params)
                        (handler params)
                        (apply handler params))]
+        (when request-id
+          (println "result <- " result))
         {:id request-id
          :result result})
 
       (p/catch (fn [e]
+                 (println "ERROR handling #" request-id "via" handler "with" params)
+                 (println "-> " e)
                  {:id request-id
                   :error {:code (if-let [data (ex-data e)]
                                   (:error-code data)
