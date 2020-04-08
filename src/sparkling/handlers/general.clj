@@ -10,6 +10,7 @@
 
 (defhandler :initialize [{:keys [_clientInfo capabilities rootPath]}]
   (println ":initialize" capabilities)
+  (systemic/start! `*project-config* `*nrepl*)
 
   (let [lsp {:did-save? (get-in capabilities [:textDocument
                                               :synchronization
@@ -27,7 +28,9 @@
       (println "TODO: watch for changes")))
 
   {:capabilities
-   {:textDocumentSync {:openClose true
+   {:completionProvider {}
+
+    :textDocumentSync {:openClose true
                        :didSave true
 
                        ; 1 = sync the full file

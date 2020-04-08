@@ -15,8 +15,10 @@
   ; TODO incremental?
   (swap! *doc-state* assoc uri (-> changes first :text)))
 
-(defhandler :textDocument/didOpen [{{:keys [uri languageId _text]} :textDocument}]
-  (println "Opened: " languageId "@" uri))
+(defhandler :textDocument/didOpen [{{:keys [uri languageId text]} :textDocument}]
+  (println "Opened: " languageId "@" uri)
+  (when text
+    (swap! *doc-state* assoc uri text)))
 
 (defhandler :textDocument/didClose [{{:keys [uri]} :textDocument}]
   (println "Closed " uri))
