@@ -19,7 +19,7 @@
       (throw e))))
 
 (defn stop [conn]
-  (.close conn))
+  (.close (:conn conn)))
 
 (defn message [conn msg]
   (-> (nrepl/client conn message-timeout)
