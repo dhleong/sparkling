@@ -63,7 +63,7 @@
 
                         (when (re-find #"\($" text-line)
                           ; suggest anything, maybe?
-                          "")
+                          [nil ""])
 
                         ; YCM seems to send the first index of eg
                         ; "str/" so let's handle that
@@ -75,8 +75,8 @@
                                    :extra-metadata ["arglists" "doc"]
                                    :symbol match})]
 
-    (when-not match
-      (println "NO symbol to match:")
+    (when (nil? match)
+      (println "NO symbol to match: ")
       (println "complete at " line ":" character)
       (println "full-line = " full-line)
       (println "text-line = " text-line)
