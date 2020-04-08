@@ -21,6 +21,10 @@
           text-line (subs full-line 0 character)
           [_ match] (or (re-find regex-identifier-tail text-line)
 
+                        (when (re-find #"\($" text-line)
+                          ; suggest anything, maybe?
+                          "")
+
                         ; YCM seems to send the first index of eg
                         ; "str/" so let's handle that
                         (re-find regex-identifier-head (subs full-line character)))
@@ -32,9 +36,11 @@
                                    :symbol match})]
 
     (when-not match
+      (println "NO symbol to match:")
       (println "complete at " line ":" character)
       (println "full-line = " full-line)
-      (println "text-line = " text-line))
+      (println "text-line = " text-line)
+      (println "head-line = " (subs full-line character)))
 
     ; TODO show ns somewhere?
     {:isIncomplete true
