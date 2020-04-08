@@ -56,7 +56,8 @@
   (check-for-errors uri 0))
 
 (defhandler :textDocument/didClose [{{:keys [uri]} :textDocument}]
-  (println "Closed " uri))
+  (println "Closed " uri)
+  (swap! *doc-state* dissoc uri))
 
 (defhandler :textDocument/didChange [{{:keys [uri version]} :textDocument, changes :contentChanges}]
   (println "Change: " uri "@" version ": " (count changes))
