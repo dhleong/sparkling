@@ -45,12 +45,6 @@
       (p/then (fn [resp]
                 (->> resp :value last read-string)))))
 
-(defn format-value [obj]
-  (let [base (pr-str obj)]
-    (if (string? obj)
-      (str/replace base "\\n" "\n")
-      base)))
-
 (defn- code-with-var-substitution
   [locals code-form]
   (let [symbol->placeholder (zipmap locals
@@ -70,7 +64,7 @@
        #"%\d+"
        ~(reduce-kv
           (fn [m p s]
-            (assoc m p `(format-value ~s)))
+            (assoc m p `(pr-str ~s)))
           {}
           placeholder->symbol))))
 

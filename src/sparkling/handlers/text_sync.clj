@@ -16,21 +16,11 @@
   ; TODO incremental?
   (swap! *doc-state* assoc uri (-> changes first :text)))
 
-(defhandler :textDocument/didOpen [{{:keys [uri languageId text]} :textDocument}]
-  (println "Opened: " languageId "@" uri)
-  (when text
-    (swap! *doc-state* assoc uri text)))
-
-(defhandler :textDocument/didClose [{{:keys [uri]} :textDocument}]
-  (println "Closed " uri))
-
-(defhandler :textDocument/didChange [{{:keys [uri version]} :textDocument, changes :contentChanges}]
-  (println "Change: " uri "@" version ": " (count changes))
-  (apply-changes! uri changes)
-
+(defn- check-for-errors [uri version]
   (when-not (config/lsp :did-save?)
     (-> (p/let [code (get @*doc-state* uri)
-                diagnostic (analyze/string uri code)]
+                diagnostic (when code
+                             (analyze/string uri code))]
 
           (if diagnostic
             ; error discovered
@@ -55,3 +45,21 @@
                       :version version
                       :diagnostics
                       [(parse-diagnostic e)]}))))))
+
+
+; ======= handlers ========================================
+
+(defhandler :textDocument/didOpen [{{:keys [uri languageId text]} :textDocument}]
+  (println "Opened: " languageId "@" uri)
+  (when text
+    (swap! *doc-state* assoc uri text))
+  (check-for-errors uri 0))
+
+(defhandler :textDocument/didClose [{{:keys [uri]} :textDocument}]
+  (println "Closed " uri))
+
+(defhandler :textDocument/didChange [{{:keys [uri version]} :textDocument, changes :contentChanges}]
+  (println "Change: " uri "@" version ": " (count changes))
+  (apply-changes! uri changes)
+
+  (check-for-errors uri version))
