@@ -28,7 +28,7 @@
       (println "TODO: watch for changes")))
 
   {:capabilities
-   {:completionProvider {}
+   {:completionProvider {:triggerCharacters ["/"]}
 
     :textDocumentSync {:openClose true
                        :didSave true

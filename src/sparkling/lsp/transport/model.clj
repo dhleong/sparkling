@@ -1,4 +1,5 @@
-(ns sparkling.lsp.transport.model)
+(ns sparkling.lsp.transport.model
+  (:require [clojure.string :as str]))
 
 (defprotocol ITransport
   (read-request [this])
