@@ -1,5 +1,8 @@
 (ns sparkling.nrepl
-  (:require [nrepl.core :as nrepl]
+  (:require [clojure.set :refer [map-invert]]
+            [clojure.string :as str]
+            [clojure.walk :refer [postwalk]]
+            [nrepl.core :as nrepl]
             [promesa.core :as p]
             [promesa.exec :as exec]
             [systemic.core :refer [defsys]]
@@ -42,6 +45,37 @@
       (p/then (fn [resp]
                 (->> resp :value last read-string)))))
 
-(defmacro evaluate [& code]
-  (let [the-code `(nrepl/code ~@code)]
-    `(evaluate* ~the-code)))
+(defn format-value [obj]
+  (let [base (pr-str obj)]
+    (if (string? obj)
+      (str/replace base "\\n" "\n")
+      base)))
+
+(defn- code-with-var-substitution
+  [locals code-form]
+  (let [symbol->placeholder (zipmap locals
+                                    (map (fn [n]
+                                           (str "%" n))
+                                         (range)))
+        placeholder->symbol (map-invert symbol->placeholder)
+        with-placeholders (postwalk
+                            (fn [form]
+                              (or (when-let [s (get symbol->placeholder form)]
+                                    (symbol s))
+                                  form))
+                            code-form)
+        the-code `(nrepl/code ~with-placeholders)]
+    `(str/replace
+       ~the-code
+       #"%\d+"
+       ~(reduce-kv
+          (fn [m p s]
+            (assoc m p `(format-value ~s)))
+          {}
+          placeholder->symbol))))
+
+(defmacro evaluate
+  ([code-form] `(evaluate* (nrepl/code ~code-form)))
+  ([locals code-form]
+   (let [the-code (code-with-var-substitution locals code-form)]
+     `(evaluate* ~the-code))))

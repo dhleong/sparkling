@@ -28,7 +28,11 @@
       (println "TODO: watch for changes")))
 
   {:capabilities
-   {:completionProvider {:triggerCharacters ["/" "("]}
+   {:codeActionProvider {:codeActionKinds [""
+                                           :quickfix
+                                           :source.organizeImports]}
+
+    :completionProvider {:triggerCharacters ["/" "("]}
 
     :textDocumentSync {:openClose true
                        :didSave true

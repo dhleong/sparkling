@@ -1,5 +1,6 @@
 (ns sparkling.handlers.text-sync
   (:require [promesa.core :as p]
+            [sparkling.analyze :as analyze]
             [sparkling.lsp :as lsp]
             [systemic.core :refer [defsys]]
             [sparkling.config :as config]
@@ -27,21 +28,27 @@
   (println "Change: " uri "@" version ": " (count changes))
   (apply-changes! uri changes)
 
-  ; is this a terrible idea?
   (when-not (config/lsp :did-save?)
     (-> (p/let [code (get @*doc-state* uri)
-                _ (nrepl/message
-                    {:op :eval
-                     :code code})]
+                diagnostic (analyze/string uri code)]
 
-          ; NOTE: if we got here, there were no errors
-          (lsp/notify!
-            :textDocument/publishDiagnostics
-            {:uri uri
-             :version version
-             :diagnostics []}))
+          (if diagnostic
+            ; error discovered
+            (lsp/notify!
+              :textDocument/publishDiagnostics
+              {:uri uri
+               :version version
+               :diagnostics
+               [(parse-diagnostic diagnostic)]})
+
+            (lsp/notify!
+              :textDocument/publishDiagnostics
+              {:uri uri
+               :version version
+               :diagnostics []})))
 
         (p/catch (fn [e]
+                   (println "Unexpected error" e)
                    (lsp/notify!
                      :textDocument/publishDiagnostics
                      {:uri uri

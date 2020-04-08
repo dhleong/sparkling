@@ -52,3 +52,10 @@
                          :detail (when-let [args (seq (:arglists c))]
                                    (str args))
                          :documentation (:doc c)})))}))
+
+(defhandler :textDocument/codeAction [{{:keys [diagnostics]} :context,
+                                       {uri :uri} :textDocument
+                                       :as req}]
+  (println "TODO: actions for" uri ": " diagnostics)
+  (println "req=" req)
+  )
