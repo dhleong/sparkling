@@ -1,10 +1,11 @@
 (ns sparkling.analyze
   (:require [clojure.main :as main]
-            [sparkling.nrepl :as nrepl]))
+            [sparkling.nrepl :as nrepl]
+            [sparkling.path :as path]))
 
-(defn- analyze-clojure [^String code]
+(defn- analyze-clojure [relative-path ^String code]
   (nrepl/evaluate
-    [code]
+    [relative-path code]
     (let [err (atom nil)
           read-start (atom nil)]
 
@@ -12,7 +13,9 @@
       ; but without the eval step
       (binding [*in* (clojure.lang.LineNumberingPushbackReader.
                        (java.io.StringReader.
-                         code))]
+                         code))
+                *file* relative-path
+                *source-path* relative-path]
         (clojure.main/repl
           :eval (fn [v]
                   (try
@@ -69,5 +72,13 @@
 
                    (ex-data e))})))))
 
-(defn string [_uri ^String code]
-  (analyze-clojure code))
+(defn- analyze-cljs [^String _code]
+  ; TODO we probably need to ensure we're using the right session
+  ; for shadow-cljs, for example
+  )
+
+(defn string [uri ^String code]
+  (let [relative-path (path/relative uri)]
+    (case (path/extension uri)
+      ("clj" "cljc") (analyze-clojure relative-path code)
+      "cljs" (analyze-cljs code))))

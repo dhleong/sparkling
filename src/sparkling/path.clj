@@ -2,6 +2,17 @@
   (:require [clojure.string :as str]
             [sparkling.config :refer [*project-config*]]))
 
+(defn extension [uri]
+  (subs uri (inc (str/last-index-of uri "."))))
+
+(defn relative
+  ([uri] (relative @*project-config* uri))
+  ([_project-config uri]
+   ; FIXME: source roots
+   (let [src (str/index-of uri "/src")]
+     (subs uri (+ src (count "/src"))))
+   ))
+
 (defn ->ns
   ([uri] (->ns @*project-config* uri))
   ([project-config uri]
