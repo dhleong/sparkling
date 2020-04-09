@@ -3,7 +3,8 @@
             [sparkling.config :refer [*project-config*]]))
 
 (defn extension [uri]
-  (subs uri (inc (str/last-index-of uri "."))))
+  (when uri
+    (subs uri (inc (str/last-index-of uri ".")))))
 
 (defn relative
   ([uri] (relative @*project-config* uri))

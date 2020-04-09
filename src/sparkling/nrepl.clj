@@ -70,7 +70,7 @@
           placeholder->symbol))))
 
 (defmacro evaluate
-  ([code-form] (evaluate nil code-form))
+  ([code-form] `(evaluate nil ~code-form))
   ([opts code-form]
    (let [locals (when (vector? opts)
                   opts)

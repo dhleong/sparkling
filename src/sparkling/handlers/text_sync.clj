@@ -22,29 +22,18 @@
                 diagnostic (when code
                              (analyze/string uri code))]
 
-          (if diagnostic
-            ; error discovered
-            (lsp/notify!
-              :textDocument/publishDiagnostics
-              {:uri uri
-               :version version
-               :diagnostics
-               [(parse-diagnostic diagnostic)]})
-
-            (lsp/notify!
-              :textDocument/publishDiagnostics
-              {:uri uri
-               :version version
-               :diagnostics []})))
+          (lsp/notify!
+            :textDocument/publishDiagnostics
+            {:uri uri
+             :version version
+             :diagnostics (if diagnostic
+                            [(parse-diagnostic diagnostic)]
+                            [])}))
 
         (p/catch (fn [e]
                    (println "Unexpected error" e)
-                   (lsp/notify!
-                     :textDocument/publishDiagnostics
-                     {:uri uri
-                      :version version
-                      :diagnostics
-                      [(parse-diagnostic e)]}))))))
+                   (when-let [msg (ex-message e)]
+                     (lsp/log! :warn msg)))))))
 
 
 ; ======= handlers ========================================

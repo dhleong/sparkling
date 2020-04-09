@@ -16,7 +16,7 @@
     (catch Exception _
       nil)))
 
-(defn detect-port [project-config]
+(defn nrepl-port [project-config]
   (let [[source p] (or (try-detect nrepl project-config)
                        (try-detect shadow project-config))]
     (if p
@@ -29,3 +29,11 @@
 
       (throw (ex-info "Could not detect nrepl"
                       {:config project-config})))))
+
+(defn shadow-builds [project-config]
+  (->> (file (:root-path project-config)
+             "shadow-cljs.edn")
+       (slurp)
+       (read-string {:default #(do %2)})
+       :builds
+       keys))

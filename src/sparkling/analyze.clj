@@ -73,14 +73,17 @@
 
                    (ex-data e))})))))
 
-(defn- analyze-cljs [^String _code]
+(defn- analyze-cljs [context ^String code]
   ; TODO we probably need to ensure we're using the right session
   ; for shadow-cljs, for example
-  )
+  (nrepl/message
+    {:op :eval
+     :code code
+     :sparkling/context context}))
 
 (defn string [uri ^String code]
   (let [relative-path (path/relative uri)
         context {:uri uri}]
     (case (path/extension uri)
       ("clj" "cljc") (analyze-clojure context relative-path code)
-      "cljs" (analyze-cljs code))))
+      "cljs" (analyze-cljs context code))))
