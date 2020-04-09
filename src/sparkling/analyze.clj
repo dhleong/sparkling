@@ -3,8 +3,9 @@
             [sparkling.nrepl :as nrepl]
             [sparkling.path :as path]))
 
-(defn- analyze-clojure [relative-path ^String code]
+(defn- analyze-clojure [context relative-path ^String code]
   (nrepl/evaluate
+    {:sparkling/context context}
     [relative-path code]
     (let [err (atom nil)
           read-start (atom nil)]
@@ -78,7 +79,8 @@
   )
 
 (defn string [uri ^String code]
-  (let [relative-path (path/relative uri)]
+  (let [relative-path (path/relative uri)
+        context {:uri uri}]
     (case (path/extension uri)
-      ("clj" "cljc") (analyze-clojure relative-path code)
+      ("clj" "cljc") (analyze-clojure context relative-path code)
       "cljs" (analyze-cljs code))))

@@ -73,7 +73,8 @@
                                   {:op :complete
                                    :ns (path/->ns uri)
                                    :extra-metadata ["arglists" "doc"]
-                                   :symbol match})]
+                                   :symbol match
+                                   :sparkling/context {:uri uri}})]
 
     (when (nil? match)
       (println "NO symbol to match: ")

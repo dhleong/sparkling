@@ -30,7 +30,7 @@
   [msg]
   (-> *nrepl*
       (p/then (fn [server]
-                (core/message (:conn server) msg))
+                (core/message server msg))
               exec/default-scheduler)
       (p/then (fn [resp]
                 (if-let [err (:err resp)]
@@ -39,9 +39,10 @@
 
                   resp)))))
 
-(defn evaluate* [code-str]
-  (-> (message {:op :eval
-                :code code-str})
+(defn evaluate* [opts code-str]
+  (-> (message (merge opts
+                      {:op :eval
+                       :code code-str}))
       (p/then (fn [resp]
                 (->> resp :value last read-string)))))
 
@@ -69,7 +70,15 @@
           placeholder->symbol))))
 
 (defmacro evaluate
-  ([code-form] `(evaluate* (nrepl/code ~code-form)))
-  ([locals code-form]
+  ([code-form] (evaluate nil code-form))
+  ([opts code-form]
+   (let [locals (when (vector? opts)
+                  opts)
+         opts (when-not (vector? opts)
+                opts)]
+     (if (nil? locals)
+       `(evaluate* ~opts (nrepl/code ~code-form))
+       `(evaluate ~opts ~locals ~code-form))))
+  ([opts locals code-form]
    (let [the-code (code-with-var-substitution locals code-form)]
-     `(evaluate* ~the-code))))
+     `(evaluate* ~opts ~the-code))))
