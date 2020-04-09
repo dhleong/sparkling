@@ -1,5 +1,6 @@
 (ns sparkling.analyze
   (:require [clojure.main :as main]
+            [promesa.core :as p]
             [sparkling.nrepl :as nrepl]
             [sparkling.path :as path]))
 
@@ -76,10 +77,17 @@
 (defn- analyze-cljs [context ^String code]
   ; TODO we probably need to ensure we're using the right session
   ; for shadow-cljs, for example
-  (nrepl/message
-    {:op :eval
-     :code code
-     :sparkling/context context}))
+  ; NOTE: our analysis here is based on the presence or absence
+  ; of an exception when evaluating. This is probably terrible,
+  ; and future work to simply analyze like for clj would be better
+  (-> (nrepl/message
+        {:op :eval
+         :code code
+         :sparkling/context context})
+      (p/then (fn [_] nil))
+      (p/catch (fn [e]
+                 (println "Encountered an error eval'ing " context)
+                 {:exception e}))))
 
 (defn string [uri ^String code]
   (let [relative-path (path/relative uri)

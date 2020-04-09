@@ -9,17 +9,28 @@
    (Integer/parseInt col)
    msg])
 
-(defn split-error-message [message]
+(defn split-clj-error-message [message]
   (some->>
     (or (when-let [[_ & match] (re-find #"at \(.*?:(\d+):(\d+)\).\s*(.*)$"
                                           message)]
           match))
     clean-split-error))
 
+(defn split-shadow-error-message [message]
+  (some->>
+    (or (when-let [[_ & match] (re-find #"\[line (\d+), col (\d+)\]\s*(.*?)\."
+                                        message)]
+          match))
+    clean-split-error))
+
 (defn- parse-exception [^Throwable e]
   (let [message (ex-message e)
-        [l c m] (or (split-error-message message)
+        [l c m] (or (split-clj-error-message message)
+                    (split-shadow-error-message message)
                     [0 0 message])]
+    ; TODO cleanup
+    (println "PARSE " message)
+    (println " -> " l c m)
     {:source source-name
      :severity diagnostic-severity-error
 
@@ -48,10 +59,11 @@
 
              ; TODO: better positioning?
              :end {:line line
-                   :character column} }
-     }))
+                   :character column}} }))
 
 (defn parse-diagnostic [d]
-  (if (ex-message d)
-    (parse-exception d)
-    (parse-map d)))
+  (cond
+    (ex-message d) (parse-exception d)
+    (:exception d) (parse-exception (:exception d))
+    (map? d) (parse-map d)
+    :else (throw (ex-info "Unexpected diagnostic format" d))))
