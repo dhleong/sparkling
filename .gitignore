@@ -2,3 +2,4 @@
 .nrepl-port
 .cpcache
 trace.edn
+pom.xml
