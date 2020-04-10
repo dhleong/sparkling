@@ -5,6 +5,10 @@
 (s/def ::lsp (s/keys :req-un [::did-save?]))
 
 (s/def ::root-path string?)
+(s/def ::source-paths (s/coll-of string?))
 
-(s/def ::project-config (s/keys :req-un [::root-path]
-                                :opt-un [::lsp]))
+(s/def ::project-config-minimal (s/keys :req-un [::root-path]
+                                        :opt-un [::lsp]))
+
+(s/def ::project-config (s/and ::project-config-minimal
+                               (s/keys :opt-un [::source-paths])))

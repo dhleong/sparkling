@@ -1,15 +1,13 @@
 (ns sparkling.nrepl.detect
-  (:require [clojure.edn :as edn]
-            [clojure.java.io :refer [file]]))
+  (:require [clojure.java.io :refer [file]]
+            [sparkling.builders.shadow :as shadow]))
 
 (defn- nrepl [project-config]
   [:nrepl (slurp (file (:root-path project-config)
                        ".nrepl-port"))])
 
 (defn- shadow [project-config]
-  [:shadow (slurp (file (:root-path project-config)
-                        ".shadow-cljs"
-                        "nrepl.port"))])
+  [:shadow (shadow/detect-nrepl-port project-config)])
 
 (defn- try-detect [method config]
   (try
@@ -31,15 +29,7 @@
       (throw (ex-info "Could not detect nrepl"
                       {:config project-config})))))
 
-; NOTE: visible for testing
-(defn extract-shadow-builds [edn-string]
-  (->> edn-string
-       (edn/read-string {:default #(do %2)})
-       :builds
-       keys))
-
 (defn shadow-builds [project-config]
-  (->> (file (:root-path project-config)
-             "shadow-cljs.edn")
-       (slurp)
-       extract-shadow-builds))
+  (some->> project-config
+           shadow/read-config
+           shadow/extract-builds))

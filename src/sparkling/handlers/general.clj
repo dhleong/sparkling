@@ -1,12 +1,10 @@
 (ns sparkling.handlers.general
   (:require [promesa.core :as p]
             [systemic.core :as systemic]
-            [sparkling.config :refer [*project-config*]]
+            [sparkling.config :as config :refer [*project-config*]]
             [sparkling.handlers.core :refer [defhandler]]
             [sparkling.lsp :refer [*lsp*]]
-            [sparkling.nrepl :refer [*nrepl*]]
-            [sparkling.spec :as spec]
-            [sparkling.spec.util :refer [validate]]))
+            [sparkling.nrepl :refer [*nrepl*]]))
 
 (defhandler :initialize [{:keys [_clientInfo capabilities rootPath]}]
   (println ":initialize" capabilities)
@@ -16,9 +14,8 @@
                                               :synchronization
                                               :didSave]
                                 false)}
-        config (validate ::spec/project-config
-                         {:root-path rootPath
-                          :lsp lsp})]
+        config (config/fill {:root-path rootPath
+                             :lsp lsp})]
     (p/resolve! *project-config* config)
 
     (when-not (:did-save? lsp)

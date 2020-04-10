@@ -11,30 +11,33 @@
 
 (defn relative
   ([uri] (relative @*project-config* uri))
-  ([_project-config uri]
-   ; FIXME: source roots
-   (let [src (str/index-of uri "/src")]
-     (subs uri (+ src (count "/src"))))
-   ))
+  ([project-config uri]
+   (let [root-path (:root-path project-config)
+         from-root (let [root (str/index-of uri root-path)]
+                     (subs uri (+ root (count root-path))))]
+     (if-let [source-paths (:source-paths project-config)]
+       (->> source-paths
+            (keep (fn [path]
+                    (when-some [idx (str/index-of from-root path)]
+                      (subs from-root (+ idx (count path))))))
+            first)
+
+       ; no explicit source paths? try a generic fallback
+       (if-some [src (str/index-of from-root "/src")]
+         (subs from-root (+ src (count "/src")))
+         from-root)))))
 
 (defn ->ns
   ([uri] (->ns @*project-config* uri))
   ([project-config uri]
-   (let [{:keys [root-path]} project-config
+   (-> (relative project-config uri)
 
-         ; FIXME: we need to detect source roots
-         ns-part (subs uri
-                       (+ (str/index-of uri root-path)
-                          (count root-path)))]
-     (-> ns-part
-         (str/replace "src/" "") ;; hacks
+       (str/replace #"^/" "")
+       (str/replace #"\.\w+$" "") ;; strip extension
 
-         (str/replace #"^/" "")
-         (str/replace #"\.\w+$" "") ;; strip extension
-
-         (str/replace #"[/\\_]"
-                      (fn [^String c]
-                        (case (.charAt c 0)
-                          \\ "."
-                          \/ "."
-                          \_ "-")))))))
+       (str/replace #"[/\\_]"
+                    (fn [^String c]
+                      (case (.charAt c 0)
+                        \\ "."
+                        \/ "."
+                        \_ "-"))))))
