@@ -55,7 +55,7 @@
               (try-cljs-connect service)))
 
         ; fallback to clj
-        (nrepl/client-session clj))))
+        clj)))
 
 (defn start [config]
   (validate ::spec/project-config config)
