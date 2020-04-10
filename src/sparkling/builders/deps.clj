@@ -1,21 +1,11 @@
-(ns sparkling.builders.shadow
+(ns sparkling.builders.deps
   (:require [clojure.java.io :refer [file]]
             [sparkling.builders.util :refer [parse-edn]]
             [sparkling.config.util :refer [add-source-paths]]))
 
-(defn detect-nrepl-port [project-config]
-  (slurp (file (:root-path project-config)
-               ".shadow-cljs"
-               "nrepl.port")))
-
-(defn extract-builds [config]
-  (->> config
-       :builds
-       keys))
-
 (defn read-config [project-config]
   (->> (file (:root-path project-config)
-             "shadow-cljs.edn")
+             "deps.edn")
        (slurp)
        parse-edn))
 
@@ -26,5 +16,5 @@
       nil)))
 
 (defn fill-project-config [project-config]
-  (when-let [shadow (try-read-config project-config)]
-    (add-source-paths project-config (:source-paths shadow))))
+  (when-let [deps (try-read-config project-config)]
+    (add-source-paths project-config (:paths deps))))

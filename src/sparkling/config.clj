@@ -1,5 +1,6 @@
 (ns sparkling.config
   (:require [promesa.core :as p]
+            [sparkling.builders.deps :as deps]
             [sparkling.builders.shadow :as shadow]
             [systemic.core :refer [defsys]]
             [sparkling.spec.util :refer [validate]]
@@ -8,7 +9,8 @@
 ; NOTE: a config-filler must accept a ::spec/project-config-minimal and
 ; either return nil (if nothing could be done) or a ::spec/project-config
 (def ^:private config-fillers
-  [shadow/fill-project-config])
+  [shadow/fill-project-config
+   deps/fill-project-config])
 
 ; ======= public interface ================================
 
