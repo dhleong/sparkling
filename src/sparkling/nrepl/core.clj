@@ -77,10 +77,14 @@
   (when-let [cljs (:cljs @service)]
     (.close cljs)))
 
-(defn message [service msg]
+(defn message-seq [service msg]
   (println "message" (:sparkling/context msg))
   (let [conn (connection-for service msg)
         msg (dissoc msg :sparkling/context)]
     (-> conn
-        (nrepl/message msg)
-        nrepl/combine-responses)))
+        (nrepl/message msg))))
+
+(defn message [service msg]
+  (nrepl/combine-responses
+    (message-seq service msg)))
+

@@ -6,6 +6,9 @@
   (when uri
     (subs uri (inc (str/last-index-of uri ".")))))
 
+(defn from-uri [uri]
+  (subs uri (count "file://")))
+
 (defn relative
   ([uri] (relative @*project-config* uri))
   ([_project-config uri]

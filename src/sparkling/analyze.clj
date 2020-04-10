@@ -80,11 +80,19 @@
   ; NOTE: our analysis here is based on the presence or absence
   ; of an exception when evaluating. This is probably terrible,
   ; and future work to simply analyze like for clj would be better
-  (-> (nrepl/message
+  (-> (nrepl/message-seq
         {:op :eval
          :code code
+         :file (path/from-uri (:uri context))
          :sparkling/context context})
-      (p/then (fn [_] nil))
+
+      (p/then (fn [m]
+                ; force evaluating the *first item only*...
+                (first m)
+
+                ; but return nil on success
+                nil))
+
       (p/catch (fn [e]
                  (println "Encountered an error eval'ing " context)
                  {:exception e}))))

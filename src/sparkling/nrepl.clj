@@ -19,25 +19,38 @@
      :stop #(when (p/resolved? server)
               (core/stop @server))}))
 
+(defn- message* [f msg]
+  (-> *nrepl*
+      (p/then (fn [server]
+                (f server msg))
+              exec/default-scheduler)))
+
+(defn- parse-message-response [msg resp]
+  (if-let [err (:err resp)]
+    (throw (ex-info err
+                    (assoc resp :message msg)))
+
+    resp))
 
 ; ======= public interface ================================
 
-(defn message
+(defn message-seq
   "Send the given message to the nrepl server, returning a promise that
-   resolves to the response. If *nrepl* has not yet been initialized
-   (usually due to *project-config* not yet being resolved) this promise
-   will wait for *nrepl* to initialize before sending."
+   resolves to a lazy sequence of each response message. If *nrepl* has not
+   yet been initialized (usually due to *project-config* not yet being
+   resolved) this promise will wait for *nrepl* to initialize before
+   sending."
   [msg]
-  (-> *nrepl*
-      (p/then (fn [server]
-                (core/message server msg))
-              exec/default-scheduler)
-      (p/then (fn [resp]
-                (if-let [err (:err resp)]
-                  (throw (ex-info err
-                                  (assoc resp :message msg)))
+  (-> (message* core/message-seq msg)
+      (p/then (fn [responses]
+                (map (partial parse-message-response msg) responses)))))
 
-                  resp)))))
+(defn message
+  "Like (message-seq), but resolves instead to a single value that is the
+   combination of all response messages."
+  [msg]
+  (-> (message* core/message msg)
+      (p/then (partial parse-message-response msg))))
 
 (defn evaluate* [opts code-str]
   (-> (message (merge opts
