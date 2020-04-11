@@ -1,4 +1,4 @@
-(ns sparkling.analyze
+(ns sparkling.tools.analyze
   (:require [clojure.main :as main]
             [promesa.core :as p]
             [sparkling.nrepl :as nrepl]

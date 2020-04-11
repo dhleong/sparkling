@@ -1,6 +1,6 @@
 (ns sparkling.handlers.text-sync
   (:require [promesa.core :as p]
-            [sparkling.analyze :as analyze]
+            [sparkling.tools.analyze :as analyze]
             [sparkling.lsp :as lsp]
             [systemic.core :refer [defsys]]
             [sparkling.config :as config]
