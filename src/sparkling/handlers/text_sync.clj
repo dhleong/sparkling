@@ -16,7 +16,7 @@
   ; TODO incremental?
   (swap! *doc-state* assoc uri (-> changes first :text)))
 
-(defn- check-for-errors [uri version]
+(defn check-for-errors [uri version]
   (when-not (config/lsp :did-save?)
     (-> (p/let [code (get @*doc-state* uri)
                 diagnostic (when code

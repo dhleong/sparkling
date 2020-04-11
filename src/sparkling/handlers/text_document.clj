@@ -1,11 +1,10 @@
 (ns sparkling.handlers.text-document
-  (:require [clojure.string :as str]
-            [promesa.core :as p]
+  (:require [promesa.core :as p]
             [sparkling.handlers.core :refer [defhandler]]
-            [sparkling.handlers.text-sync :refer [*doc-state*]]
-            [sparkling.nrepl :as nrepl]
+            [sparkling.handlers.text-sync :as text-sync :refer [*doc-state*]]
             [sparkling.path :as path]
-            [sparkling.tools.completion :refer [suggest-complete]]))
+            [sparkling.tools.completion :refer [suggest-complete]]
+            [sparkling.tools.fix :as fix]))
 
 (def identifier-chars "([a-zA-Z._*:$!?+=<>$/-]+)")
 (def regex-identifier-tail (re-pattern (str identifier-chars "$")))
@@ -76,6 +75,16 @@
 (defhandler :textDocument/codeAction [{{:keys [diagnostics]} :context,
                                        {uri :uri} :textDocument
                                        :as req}]
-  (println "TODO: actions for" uri ": " diagnostics)
-  (println "req=" req)
-  )
+  (println "Code action for" uri ": " diagnostics)
+  (println " req = " req)
+
+  (p/do!
+    ; TODO: most of these will involve some text changes...
+    (->> diagnostics
+         (map (fn [d]
+                (println "Attempt to fix" d "...")
+                (fix/apply-fix (:message d))))
+         (p/all))
+
+    ; re-check for errors
+    (text-sync/check-for-errors uri nil)))

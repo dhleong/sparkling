@@ -5,4 +5,5 @@
            promesa.core/recur clojure.core/recur
 
            sparkling.handlers.core/defhandler clojure.core/defn
+           sparkling.tools.fixers.model/def-fixer clojure.core/defn
            }}

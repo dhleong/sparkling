@@ -87,8 +87,8 @@
          :sparkling/context context})
 
       (p/then (fn [m]
-                ; force evaluating the *first item only*...
-                (first m)
+                ; force evaluating each item until an exception occurs
+                (doall m)
 
                 ; but return nil on success
                 nil))
