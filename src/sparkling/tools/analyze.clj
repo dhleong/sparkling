@@ -100,6 +100,10 @@
 (defn string [uri ^String code]
   (let [relative-path (path/relative uri)
         context {:uri uri}]
-    (case (path/extension uri)
-      ("clj" "cljc") (analyze-clojure context relative-path code)
-      "cljs" (analyze-cljs context code))))
+    (-> (case (path/extension uri)
+          ("clj" "cljc") (analyze-clojure context relative-path code)
+          "cljs" (analyze-cljs context code))
+        (p/then' (fn [v]
+                   (when v
+                     (println "Detected error: " v))
+                   v)))))

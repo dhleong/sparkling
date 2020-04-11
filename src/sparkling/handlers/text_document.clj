@@ -82,7 +82,7 @@
     ; TODO: most of these will involve some text changes...
     (->> diagnostics
          (map (fn [d]
-                (println "Attempt to fix" d "...")
+                (println "Attempt to fix" (pr-str d) "...")
                 (fix/apply-fix (:message d))))
          (p/all))
 

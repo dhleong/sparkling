@@ -2,7 +2,8 @@
   (:require [sparkling.tools.fixers.model :refer [declared-fixers]]
 
             ; import all fixers:
-            [sparkling.tools.fixers.duplicate-refer]))
+            [sparkling.tools.fixers.duplicate-refer]
+            [sparkling.tools.fixers.missing-var]))
 
 (defn parse-error [error]
   (let [msg (if (string? error)
@@ -16,17 +17,19 @@
                           [kind regex])
                         regexes)))
 
-         (map (fn [[kind regex]]
-                (when-some [m (re-find regex msg)]
-                  {:kind kind
-                   :args (next m)})))
+         (keep (fn [[kind regex]]
+                 (when-some [m (re-find regex msg)]
+                   {:kind kind
+                    :args (next m)})))
 
          first)))
 
 (defn apply-fix [error]
-  (when-let [{:keys [kind args]} (parse-error error)]
+  (if-let [{:keys [kind args]} (parse-error error)]
     (if-let [fixer (get-in @declared-fixers [kind :fixer])]
       (apply fixer args)
 
       (throw (IllegalStateException.
-               (str "Could not find fixer for kind " kind))))))
+               (str "Could not find fixer for kind " kind))))
+
+    (println "No fixer found for " (pr-str error))))
