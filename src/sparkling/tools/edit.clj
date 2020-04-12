@@ -24,18 +24,18 @@
       (println "WARN: could not get position: " (ex-message e))
       nil)))
 
-(defn perform-edit [edit]
-  (validate ::spec edit)
+(defn fix->edit [fix]
+  (validate ::spec fix)
 
-  (let [document (rz/of-string (:text edit) {:track-position? true})
+  (let [document (rz/of-string (:text fix) {:track-position? true})
         target (-> document
-                   (rz/find-value rz/next (:target edit))
+                   (rz/find-value rz/next (:target fix))
                    (rz/up))
         start (node-position target)]
 
     {:replacement (delay
                     (-> target
-                        (rz/subedit-node (partial (:op edit) edit))
+                        (rz/subedit-node (partial (:op fix) fix))
                         (rz/root-string)))
 
      :start start

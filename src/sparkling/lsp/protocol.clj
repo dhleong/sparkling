@@ -10,8 +10,8 @@
 
              :cancelled -32800})
 
-(s/def ::line (and int? #(> % 0)))
-(s/def ::character (and int? #(> % 0)))
+(s/def ::line (and int? #(>= % 0)))
+(s/def ::character (and int? #(>= % 0)))
 (s/def ::uri string?)
 
 (s/def ::position (s/keys :req-un [::line ::character]))

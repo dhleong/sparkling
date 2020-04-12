@@ -7,6 +7,7 @@
             [sparkling.path :as path]
             [sparkling.spec.util :refer [validate]]
             [sparkling.tools.completion :refer [suggest-complete]]
+            [sparkling.tools.edit :as edit]
             [sparkling.tools.fix :as fix]))
 
 (def identifier-chars "([a-zA-Z._*:$!?+=<>$/-]+)")
@@ -53,11 +54,14 @@
    :static-method lsp-completion-kind-method
    :resource lsp-completion-kind-file})
 
+(defn doc-state-of [uri]
+  (or (get @*doc-state* uri)
+      (throw (IllegalArgumentException.
+               (str "Not opened: " uri)))))
+
 (defhandler :textDocument/completion [{{:keys [character line]} :position,
                                        {uri :uri} :textDocument}]
-  (p/let [doc (or (get @*doc-state* uri)
-                  (throw (IllegalArgumentException.
-                           (str "Not opened: " uri))))
+  (p/let [doc (doc-state-of uri)
           completions (suggest-complete {:document-text doc
                                          :document-ns (path/->ns uri)
                                          :character character
@@ -85,19 +89,27 @@
           fixes (->> diagnostics
                      (map (fn [d]
                             (println "Attempt to fix" (pr-str d) "...")
-                            (-> (fix/apply-fix context (:message d))
-                                (p/then' (partial lsp-fix/->text-edit context))
-                                (p/then' (fn [edit]
-                                           {:title (str "Fix: " (:message d))
-                                            :edit (validate
-                                                    ::protocol/workspace-edit
-                                                    edit)})))))
+                            (-> (fix/extract context (:message d))
+                                (p/chain
+                                  ; insert the current doc :text so we
+                                  ; can extract an edit
+                                  (fn [fix]
+                                    (println "found fix: " fix)
+                                    (edit/fix->edit
+                                      (assoc fix :text (doc-state-of uri))))
+
+                                  (partial lsp-fix/->text-edit context)
+
+                                  (fn [text-edit]
+                                    {:title (str "Fix: " (:message d))
+                                     :edit (validate
+                                             ::protocol/workspace-edit
+                                             text-edit)})
+                                  ))))
                      (p/all))
 
-          ; re-check for errors after fixing
-          ; (TODO actually, we probably need to ask the client to do
-          ; this after they apply edits
-          _ (text-sync/check-for-errors uri nil)
+          ; TODO ask client to re-check for errors after fixing
+          ;; _ (text-sync/check-for-errors uri nil)
           ]
 
     (println "TODO: fixes=" fixes)

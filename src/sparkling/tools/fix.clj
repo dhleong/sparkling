@@ -24,7 +24,7 @@
 
          first)))
 
-(defn apply-fix [context error]
+(defn extract [context error]
   (if-let [{:keys [kind args]} (parse-error error)]
     (if-let [fixer (get-in @declared-fixers [kind :fixer])]
       (apply fixer context args)

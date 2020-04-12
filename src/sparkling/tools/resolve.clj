@@ -18,19 +18,24 @@
     ; NOTE: with the :bencode
     (get for-type (keyword ns-alias))))
 
+(defn missing-ns
+  [context sym]
+  ; TODO
+  (preferred-ns-by-alias
+    (path/->file-type (:uri context))
+    sym))
+
 (defn missing-var
   [context sym]
   (if-some [index (str/index-of sym "/")]
     ; try fixing ns?
     (p/let [the-alias (subs sym 0 index)
-            candidates (preferred-ns-by-alias
-                         (path/->file-type (:uri context))
-                         the-alias)]
+            candidates (missing-ns context the-alias)]
       (when (seq candidates)
         ; TODO
-        (println "ns alias candidates=" candidates)
+        (println "ns alias of " sym "candidates=" candidates)
         {:type :ns
-         :alias the-alias
+         :alias sym
          :candidates candidates}))
 
     ; TODO refer?
