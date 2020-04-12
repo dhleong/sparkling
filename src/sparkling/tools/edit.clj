@@ -24,6 +24,14 @@
       (println "WARN: could not get position: " (ex-message e))
       nil)))
 
+(defn- subedit-node
+  "Inlined version of rz/subedit-node that doesn't lose :track-position?"
+  [zloc f]
+  (let [zloc' (some-> zloc rz/node (rz/edn* {:track-position? true}))
+        _ (assert zloc' "could not create subzipper.")
+        zloc' (f zloc')]
+    (rz/replace zloc (rz/root zloc'))))
+
 (defn fix->edit [fix]
   (validate ::spec fix)
 
@@ -35,7 +43,7 @@
 
     {:replacement (delay
                     (-> target
-                        (rz/subedit-node (partial (:op fix) fix))
+                        (subedit-node (partial (:op fix) fix))
                         (rz/root-string)))
 
      :start start

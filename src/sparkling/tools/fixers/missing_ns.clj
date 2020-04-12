@@ -10,7 +10,7 @@
     ; TODO how to prompt for choices?
     (when definitive?
       {:target 'ns
-       :ns (first candidates)
+       :namespace (first candidates)
        :alias (:alias resolved)
        :op edits-on-ns/insert-require})))
 
