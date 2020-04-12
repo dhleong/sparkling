@@ -24,10 +24,10 @@
 
          first)))
 
-(defn apply-fix [error]
+(defn apply-fix [context error]
   (if-let [{:keys [kind args]} (parse-error error)]
     (if-let [fixer (get-in @declared-fixers [kind :fixer])]
-      (apply fixer args)
+      (apply fixer context args)
 
       (throw (IllegalStateException.
                (str "Could not find fixer for kind " kind))))

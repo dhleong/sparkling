@@ -4,7 +4,7 @@
 
 (def-fixer :duplicate-refer
   {:matches [#"^(.+) already refers to"]}
-  [sym]
+  [_context sym]
   ; NOTE: this depends on refactor-nrepl
   (println "undef" sym)
   (nrepl/message {:op :undef

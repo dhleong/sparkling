@@ -2,7 +2,10 @@
   (:require [promesa.core :as p]
             [sparkling.handlers.core :refer [defhandler]]
             [sparkling.handlers.text-sync :as text-sync :refer [*doc-state*]]
+            [sparkling.lsp.fix :as lsp-fix]
+            [sparkling.lsp.protocol :as protocol]
             [sparkling.path :as path]
+            [sparkling.spec.util :refer [validate]]
             [sparkling.tools.completion :refer [suggest-complete]]
             [sparkling.tools.fix :as fix]))
 
@@ -78,13 +81,25 @@
   (println "Code action for" uri ": " diagnostics)
   (println " req = " req)
 
-  (p/do!
-    ; TODO: most of these will involve some text changes...
-    (->> diagnostics
-         (map (fn [d]
-                (println "Attempt to fix" (pr-str d) "...")
-                (fix/apply-fix (:message d))))
-         (p/all))
+  (p/let [context {:uri uri}
+          fixes (->> diagnostics
+                     (map (fn [d]
+                            (println "Attempt to fix" (pr-str d) "...")
+                            (-> (fix/apply-fix context (:message d))
+                                (p/then' (partial lsp-fix/->text-edit context))
+                                (p/then' (fn [edit]
+                                           {:title (str "Fix: " (:message d))
+                                            :edit (validate
+                                                    ::protocol/workspace-edit
+                                                    edit)})))))
+                     (p/all))
 
-    ; re-check for errors
-    (text-sync/check-for-errors uri nil)))
+          ; re-check for errors after fixing
+          ; (TODO actually, we probably need to ask the client to do
+          ; this after they apply edits
+          _ (text-sync/check-for-errors uri nil)
+          ]
+
+    (println "TODO: fixes=" fixes)
+
+    (keep identity fixes)))

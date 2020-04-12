@@ -6,6 +6,10 @@
   (when uri
     (subs uri (inc (str/last-index-of uri ".")))))
 
+(defn ->file-type [uri]
+  (when-let [ext (extension uri)]
+    (keyword ext)))
+
 (defn from-uri [uri]
   (subs uri (count "file://")))
 
