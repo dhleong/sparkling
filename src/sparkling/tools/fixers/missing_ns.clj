@@ -9,7 +9,8 @@
         definitive? (= (count candidates) 1)]
     ; TODO how to prompt for choices?
     (when definitive?
-      {:target 'ns
+      {:description (str "Require " (first candidates) " :as " (:alias resolved))
+       :target 'ns
        :namespace (first candidates)
        :alias (:alias resolved)
        :op edits-on-ns/insert-require})))

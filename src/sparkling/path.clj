@@ -19,17 +19,22 @@
    (let [root-path (:root-path project-config)
          from-root (let [root (str/index-of uri root-path)]
                      (subs uri (+ root (count root-path))))]
-     (if-let [source-paths (:source-paths project-config)]
-       (->> source-paths
-            (keep (fn [path]
-                    (when-some [idx (str/index-of from-root path)]
-                      (subs from-root (+ idx (count path))))))
-            first)
+     (try
+       (if-let [source-paths (:source-paths project-config)]
+         (->> source-paths
+              (keep (fn [path]
+                      (when-some [idx (str/index-of from-root path)]
+                        (subs from-root (+ idx (count path))))))
+              first)
 
-       ; no explicit source paths? try a generic fallback
-       (if-some [src (str/index-of from-root "/src")]
-         (subs from-root (+ src (count "/src")))
-         from-root)))))
+         ; no explicit source paths? try a generic fallback
+         (if-some [src (str/index-of from-root "/src")]
+           (subs from-root (+ src (count "/src")))
+           from-root))
+       (catch Exception e
+         (throw (IllegalArgumentException.
+                  (pr-str "Failed to determine relative path of " uri " in " project-config)
+                  e)))))))
 
 (defn ->ns
   ([uri] (->ns @*project-config* uri))

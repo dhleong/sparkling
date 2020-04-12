@@ -41,7 +41,9 @@
                    (rz/up))
         start (node-position target)]
 
-    {:replacement (delay
+    {:description (:description fix) ; forward this along
+
+     :replacement (delay
                     (-> target
                         (subedit-node (partial (:op fix) fix))
                         (rz/string)))

@@ -87,31 +87,30 @@
 
   (p/let [context {:uri uri}
           fixes (->> diagnostics
-                     (map (fn [d]
-                            (println "Attempt to fix" (pr-str d) "...")
-                            (-> (fix/extract context (:message d))
-                                (p/chain
-                                  ; insert the current doc :text so we
-                                  ; can extract an edit
-                                  (fn [fix]
-                                    (println "found fix: " fix)
-                                    (edit/fix->edit
-                                      (assoc fix :text (doc-state-of uri))))
+                     (keep (fn [d]
+                             (println "Attempt to fix" (pr-str d) "...")
+                             (some->
+                               (fix/extract context (:message d))
+                               (p/chain
+                                 ; insert the current doc :text so we
+                                 ; can extract an edit
+                                 (fn [fix]
+                                   (println "found fix: " fix)
+                                   (edit/fix->edit
+                                     (assoc fix :text (doc-state-of uri))))
 
-                                  (partial lsp-fix/->text-edit context)
+                                 (partial lsp-fix/->text-edit context)
 
-                                  (fn [text-edit]
-                                    {:title (str "Fix: " (:message d))
-                                     :edit (validate
-                                             ::protocol/workspace-edit
-                                             text-edit)})
-                                  ))))
+                                 (fn [text-edit]
+                                   {:title (:title text-edit)
+                                    :edit (validate
+                                            ::protocol/workspace-edit
+                                            (dissoc text-edit :title))})))))
                      (p/all))
 
           ; TODO ask client to re-check for errors after fixing
           ;; _ (text-sync/check-for-errors uri nil)
           ]
 
-    (println "TODO: fixes=" fixes)
-
+    (prn "fixes=" fixes)
     (keep identity fixes)))
