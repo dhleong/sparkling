@@ -103,6 +103,7 @@
 
                                  (fn [text-edit]
                                    {:title (:title text-edit)
+                                    :diagnostics [d]
                                     :edit (validate
                                             ::protocol/workspace-edit
                                             (dissoc text-edit :title))})))))
