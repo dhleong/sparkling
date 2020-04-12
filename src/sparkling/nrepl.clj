@@ -5,7 +5,7 @@
             [nrepl.core :as nrepl]
             [promesa.core :as p]
             [promesa.exec :as exec]
-            [systemic.core :refer [defsys]]
+            [systemic.core :as systemic :refer [defsys]]
             [sparkling.config :refer [*project-config*]]
             [sparkling.nrepl.core :as core]))
 
@@ -20,6 +20,9 @@
               (core/stop @server))}))
 
 (defn- message* [f msg]
+  (when-not (systemic/running? `*nrepl*)
+    (throw (IllegalStateException. "Not connected to nrepl")))
+
   (-> *nrepl*
       (p/then (fn [server]
                 (f server msg))

@@ -44,7 +44,7 @@
     {:replacement (delay
                     (-> target
                         (subedit-node (partial (:op fix) fix))
-                        (rz/root-string)))
+                        (rz/string)))
 
      :start start
      :end (or (some-> target

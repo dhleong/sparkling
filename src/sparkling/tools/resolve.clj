@@ -16,7 +16,11 @@
           for-type (get by-type (or source-type :clj))]
 
     ; NOTE: with the :bencode
-    (get for-type (keyword ns-alias))))
+    (->> (get for-type (keyword ns-alias))
+         (map (fn [candidate]
+                (-> candidate
+                    (str/replace "/" ".")
+                    symbol))))))
 
 (defn missing-ns
   [context sym]
