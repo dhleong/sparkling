@@ -1,9 +1,12 @@
 {:version "0.1.0"
 
- :paths ["src"]
+ :paths ["src" "resources"]
 
+ ; NOTE: we use 1.10.2-alpha1 right now because it contains
+ ; a fix for native-image creation
+ ; see: https://clojure.atlassian.net/browse/CLJ-1472
  :deps
- {org.clojure/clojure {:mvn/version "1.10.0"}
+ {org.clojure/clojure {:mvn/version "1.10.2-alpha1"}
   docopt {:mvn/version "0.6.1"}
 
   cheshire {:mvn/version "5.10.0"}
@@ -18,9 +21,6 @@
  :mvn/repos {"central" {:url "https://repo1.maven.org/maven2/"}
              "clojars" {:url "https://repo.clojars.org/"}}
 
- ; ensure this gets included in the uberjar:
- :extra-paths ["deps.edn"]
-
  :aliases
  {:dev {:extra-deps {cider/cider-nrepl {:mvn/version "0.24.0"}
                      refactor-nrepl {:mvn/version "2.5.0"}}
@@ -33,6 +33,9 @@
                                                  :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
          :main-opts ["-m" "cognitect.test-runner"]}
 
+  :outdated {:extra-deps {olical/depot {:mvn/version "1.8.4"}}
+             :main-opts ["-m" "depot.outdated.main"]}
+
   ; quick run cli:
   :run {:main-opts ["-m" "sparkling.core"]}
 
@@ -41,6 +44,37 @@
             :main-opts ["-m" "cambada.uberjar"
                         "-m" "sparkling.core"]}
 
-  :native-image {:extra-deps {luchiniatwork/cambada {:mvn/version "1.0.0"}}
-                 :main-opts ["-m" "cambada.native-image"
-                             "-m" "sparkling.core"]} }}
+  ; this one seems to fail with:
+  ;   Could not locate clojure/core__init.class, clojure/core.clj or clojure/core.cljc on classpath.
+  ; at runtime. If I upgrade to 1.0.2 it just seems to hang and pin the
+  ; CPU at ~1200% usage (yikes)
+  :native-image-cambada
+  {:extra-deps {luchiniatwork/cambada {:mvn/version "1.0.0"}}
+   :main-opts ["-m" "cambada.native-image"
+               "-m" "sparkling.core"
+               "--graalvm-opt" "J-Xmx16g"
+               "--graalvm-opt" "-verbose"
+               ]}
+
+  ; this one actually works!
+  :native-image
+  {:extra-deps
+   {clj.native-image
+    {:git/url "https://github.com/taylorwood/clj.native-image.git"
+     :sha "602587dfb5243ea8c72ed3e967c37c1f9d611723"}}
+   :main-opts ["-m clj.native-image sparkling.core"
+               "-H:Name=target/sparkling"
+               "-H:+ReportExceptionStackTraces"
+               "-H:+JNI"
+               "-H:IncludeResources='.*deps.edn$'"
+               "-H:Log=registerResource:"
+               "-J-Dclojure.spec.skip-macros=true"
+               "-J-Dclojure.compiler.direct-linking=true"
+               "-J-Xmx16g"
+               "--initialize-at-run-time=java.lang.Math\\$RandomNumberGeneratorHolder"
+               "--initialize-at-build-time"
+               "--verbose"
+               "--allow-incomplete-classpath"
+               "--report-unsupported-elements-at-runtime"
+               "--no-fallback"
+               "--no-server"]}}}
