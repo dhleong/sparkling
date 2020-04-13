@@ -1,14 +1,14 @@
 (ns sparkling.lsp.dispatcher
-  (:require [promesa.core :as p]
+  (:require [clojure.string :as str]
+            [promesa.core :as p]
             [sparkling.lsp.protocol :refer [errors]]))
 
-(defn- method->kw [m]
+(defn method->kw [m]
   (when m
-    (let [ns-separator (.indexOf m "/")]
-      (if (= -1 ns-separator)
-        (keyword m)
-        (keyword (subs m 0 ns-separator)
-                 (subs m (inc ns-separator)))))))
+    (if-let [ns-separator (str/index-of m "/")]
+      (keyword (subs m 0 ns-separator)
+               (subs m (inc ns-separator)))
+      (keyword m))))
 
 (defn- invoke-handler [request-id handler params]
   (-> (p/let [result (if (map? params)
@@ -37,7 +37,8 @@
 
         ; no handler
         (do
-          (println "Reject unsupported method: " method)
+          (println "Reject unsupported method: " method
+                   "(parsed as " (method->kw method) ")")
           (p/rejected
             (ex-info (str method " is not supported")
                      {:request-id id
