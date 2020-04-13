@@ -68,6 +68,7 @@
                "-H:+JNI"
                "-H:IncludeResources='.*deps.edn$'"
                "-H:Log=registerResource:"
+               "-H:ReflectionConfigurationFiles=reflection.json"
                "-J-Dclojure.spec.skip-macros=true"
                "-J-Dclojure.compiler.direct-linking=true"
                "-J-Xmx16g"
