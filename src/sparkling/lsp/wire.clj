@@ -1,11 +1,11 @@
 (ns sparkling.lsp.wire
   (:require [cheshire.core :refer [generate-string parse-string]]
             [clojure.string :as str])
-  (:import (okio Sink Source)))
+  (:import (okio BufferedSource BufferedSink)))
 
 (def ^:dynamic *json-options* {})
 
-(defn parse-in [^Source source]
+(defn parse-in [^BufferedSource source]
   (loop [headers {}]
     (let [line (.readUtf8LineStrict source)]
       (cond
@@ -26,10 +26,10 @@
               content (parse-string content-string true)]
           (assoc content :sparkling/headers headers))))))
 
-(defn- write-str [^Sink sink ^String s]
+(defn- write-str [^BufferedSink sink ^String s]
   (.writeUtf8 sink s))
 
-(defn format-out [^Sink sink response]
+(defn format-out [^BufferedSink sink response]
   (let [content (-> response
                     (dissoc :sparkling/headers)
                     (generate-string *json-options*))
