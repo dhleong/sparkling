@@ -1,4 +1,5 @@
-{:lint-as {systemic.core/defsys clojure.core/def
+{:linters {:unresolved-symbol {:exclude [(sparkling.nrepl/evaluate)]}}
+ :lint-as {systemic.core/defsys clojure.core/def
            promesa.core/let clojure.core/let
            promesa.core/loop clojure.core/loop
            promesa.core/plet clojure.core/let

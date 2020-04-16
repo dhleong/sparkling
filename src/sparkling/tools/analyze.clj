@@ -1,6 +1,5 @@
 (ns sparkling.tools.analyze
-  (:require [clojure.main :as main]
-            [promesa.core :as p]
+  (:require [promesa.core :as p]
             [sparkling.nrepl :as nrepl]
             [sparkling.path :as path]))
 
@@ -43,7 +42,8 @@
                        (clojure.main/skip-whitespace *in*))
                       (let [start-line (reset! read-start (.getLineNumber *in*))]
                         (try
-                          (let [input (read {:read-cond :allow} *in*)]
+                          (let [input (binding [*read-eval* false]
+                                        (read {:read-cond :allow} *in*))]
                             (clojure.main/skip-if-eol *in*)
                             input)
                           (catch Throwable e
