@@ -60,6 +60,11 @@
                       {:op :eval
                        :code code-str}))
       (p/then (fn [resp]
+                (when-not (:value resp)
+                  (throw (ex-info "Failed to evaluate"
+                                  {:code code-str
+                                   :response resp})))
+
                 (->> resp :value last read-string)))))
 
 (defn- code-with-var-substitution

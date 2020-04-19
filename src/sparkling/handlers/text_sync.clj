@@ -20,15 +20,18 @@
   (when-not (config/lsp :did-save?)
     (-> (p/let [code (get @*doc-state* uri)
                 diagnostic (when code
-                             (analyze/string uri code))]
+                             (analyze/string uri code))
+                diagnostics (if diagnostic
+                              [(parse-diagnostic diagnostic)]
+                              [])]
+
+          (println "diagnostics found:" diagnostics)
 
           (lsp/notify!
             :textDocument/publishDiagnostics
             {:uri uri
              :version version
-             :diagnostics (if diagnostic
-                            [(parse-diagnostic diagnostic)]
-                            [])}))
+             :diagnostics diagnostics}))
 
         (p/catch (fn [e]
                    (println "Unexpected error" e)

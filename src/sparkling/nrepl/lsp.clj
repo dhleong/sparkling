@@ -16,9 +16,19 @@
           match))
     clean-split-error))
 
+(def ^:private re-shadow-line-col
+  #"\[line (\d+), col (\d+)\]\s*(.*?)\.")
+
+(def ^:private re-shadow-resource
+  #"Resource: [^:]*:(\d+):(\d+)\s*(.*)(?:$|\n|\r)")
+
 (defn split-shadow-error-message [message]
   (some->>
-    (or (when-let [[_ & match] (re-find #"\[line (\d+), col (\d+)\]\s*(.*?)\."
+    (or (when-let [[_ & match] (re-find re-shadow-line-col
+                                        message)]
+          match)
+
+        (when-let [[_ & match] (re-find re-shadow-resource
                                         message)]
           match))
     clean-split-error))
@@ -27,7 +37,12 @@
   (let [message (ex-message e)
         [l c m] (or (split-clj-error-message message)
                     (split-shadow-error-message message)
-                    [0 0 message])]
+                    [1 1 message])
+
+        ; base-1 -> base-0
+        l (dec l)
+        c (dec c)]
+
     ; TODO cleanup
     (println "PARSE " message)
     (println " -> " l c m)
@@ -61,9 +76,26 @@
              :end {:line line
                    :character column}} }))
 
+(defn- offset-position [position offset]
+  (cond-> position
+    true (update :line + (:line offset))
+    (= 0 (:line position)) (update :character + (:character offset))))
+
+(defn- offset-positions [parsed offset]
+  (if (nil? offset)
+    ; no offset; return unchanged
+    parsed
+
+    (-> parsed
+        (update-in [:range :start] offset-position offset)
+        (update-in [:range :end] offset-position offset))))
+
 (defn parse-diagnostic [d]
-  (cond
-    (ex-message d) (parse-exception d)
-    (:exception d) (parse-exception (:exception d))
-    (map? d) (parse-map d)
-    :else (throw (ex-info "Unexpected diagnostic format" d))))
+  (prn "parse " d)
+  (-> (cond
+        (ex-message d) (parse-exception d)
+        (:sparkling/exception d) (parse-exception (:sparkling/exception d))
+        (map? d) (parse-map d)
+        :else (throw (ex-info "Unexpected diagnostic format" {:d d})))
+
+      (offset-positions (:sparkling/offset-position d))))

@@ -38,6 +38,8 @@
                       {:build-id build-id
                        :notify? true})))
 
+    (swap! service assoc :shadow/build build-id)
+
     session))
 
 (defn try-cljs-connect [service]
@@ -78,7 +80,7 @@
     (.close cljs)))
 
 (defn message-seq [service msg]
-  (println "message" (:sparkling/context msg))
+  (println "message" (:op msg) (:ns msg) (:sparkling/context msg))
   (let [conn (connection-for service msg)
         msg (dissoc msg :sparkling/context)]
     (-> conn

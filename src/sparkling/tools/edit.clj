@@ -1,6 +1,5 @@
 (ns sparkling.tools.edit
   (:require [clojure.spec.alpha :as s]
-            ;; [rewrite-clj.parser :as rp]
             [clojure.string :as str]
             [rewrite-clj.zip :as rz]
             [sparkling.spec.util :refer [validate]]))

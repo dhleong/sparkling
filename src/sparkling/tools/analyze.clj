@@ -1,5 +1,6 @@
 (ns sparkling.tools.analyze
   (:require [promesa.core :as p]
+            [rewrite-clj.zip :as rz]
             [sparkling.nrepl :as nrepl]
             [sparkling.path :as path]))
 
@@ -74,7 +75,7 @@
 
                    (ex-data e))})))))
 
-(defn- analyze-cljs [context ^String code]
+(defn analyze-cljs-eval [context ^String code]
   ; TODO we probably need to ensure we're using the right session
   ; for shadow-cljs, for example
   ; NOTE: our analysis here is based on the presence or absence
@@ -95,14 +96,94 @@
 
       (p/catch (fn [e]
                  (println "Encountered an error eval'ing " context)
-                 {:exception e}))))
+                 {:sparkling/exception e}))))
+
+(defn- analyze-cljs-shadow [_context relative-path ^String code]
+  ; TODO: get this from the service
+  (let [shadow-build-id :app]
+    (p/do!
+      #_(nrepl/evaluate
+          {:sparkling/context context}
+          (ns sparkling.analyze
+            (:require [cljs.repl]
+                      [cljs.js]
+                      [cljs.tools.reader.reader-types])))
+
+      (nrepl/evaluate
+        ;; {; :sparkling/context context
+        ;;  :ns 'sparkling.analyze}
+        [relative-path code shadow-build-id]
+        (do
+          (ns sparkling.analyze)
+          (binding [*in* (clojure.lang.LineNumberingPushbackReader.
+                           (java.io.StringReader. code)
+                           #_1
+                           #_relative-path)
+                    *file* relative-path
+                    *source-path* relative-path]
+            (println @#'cider.piggieback/*cljs-compiler-env*)
+            (cljs.repl/repl
+              (-> (shadow.cljs.devtools.api/get-worker
+                    shadow-build-id)
+                  :state-ref
+                  deref
+                  :build-state :compiler-env
+                  atom)
+              :eval (fn [v]
+                      (println v))))))
+
+      nil)))
+
+(defn- cljs-parts [code]
+  (loop [n (-> (rz/of-string code {:track-position? true})
+               (rz/skip-whitespace))
+         forms []]
+    (if-not (or (nil? n)
+                (rz/whitespace-or-comment? n))
+      (recur
+        (-> n
+            (rz/right)
+            (rz/skip-whitespace))
+        (conj forms {:position (let [[l c] (rz/position n)]
+                                 {:line (dec l)
+                                  :character (dec c)})
+                     :string (rz/string n)}))
+
+      forms)))
+
+(defn- analyze-cljs-eval-each [context _relative-path code]
+  (try
+    (->> (cljs-parts code)
+         (map
+           (fn [{pos :position s :string}]
+             (p/let [result (analyze-cljs-eval context s)]
+               (when (:sparkling/exception result)
+                 (assoc result :sparkling/offset-position pos)))))
+         p/all
+         (p/map (fn [results]
+                  (->> (keep identity results)
+                       seq
+                       first))))
+    (catch clojure.lang.ExceptionInfo e
+      ; NOTE: if we caught an exception here, it must have been
+      ; from parsing the code at cljs-parts
+      (p/resolved {:sparkling/exception e}))))
+
+(defn- analyze-cljs [context relative-path code]
+  ;; ; TODO other build tools? be more generic?
+  (if (:use-shadow? context)
+    ; NOTE: this will never happen right now...
+    (analyze-cljs-shadow context relative-path code)
+
+    ; always this:
+    (analyze-cljs-eval-each context relative-path code)))
 
 (defn string [uri ^String code]
   (let [relative-path (path/relative uri)
         context {:uri uri}]
     (-> (case (path/extension uri)
           ("clj" "cljc") (analyze-clojure context relative-path code)
-          "cljs" (analyze-cljs context code))
+          "cljs" (analyze-cljs context relative-path code))
         (p/then' (fn [v]
                    (when v
                      (println "Detected error: " v))
