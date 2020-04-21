@@ -90,6 +90,9 @@
           {}
           placeholder->symbol))))
 
+(defmacro format-code [locals code-form]
+  (code-with-var-substitution locals code-form))
+
 (defmacro evaluate
   ([code-form] `(evaluate nil ~code-form))
   ([opts code-form]
