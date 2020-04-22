@@ -75,9 +75,7 @@
       (throw e))))
 
 (defn stop [service]
-  (.close (:clj @service))
-  (when-let [cljs (:cljs @service)]
-    (.close cljs)))
+  (.close (:transport @service)))
 
 (defn message-seq [service msg]
   (println "message" (:op msg) (:ns msg) (:sparkling/context msg))

@@ -17,7 +17,7 @@
                    (p/then core/start))]
     {:value server
      :stop #(when (p/resolved? server)
-              (core/stop server))}))
+              (core/stop @server))}))
 
 (defn- message* [f msg]
   (when-not (systemic/running? `*nrepl*)
