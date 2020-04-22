@@ -19,21 +19,34 @@
      :stop #(when (p/resolved? server)
               (core/stop @server))}))
 
-(defn- message* [f msg]
-  (when-not (systemic/running? `*nrepl*)
-    (throw (IllegalStateException. "Not connected to nrepl")))
-
-  (-> *nrepl*
-      (p/then (fn [server]
-                (f server msg))
-              exec/default-scheduler)))
-
 (defn- parse-message-response [msg resp]
   (if-let [err (:err resp)]
     (throw (ex-info err
                     (assoc resp :message msg)))
 
     resp))
+
+(defn- ensure-ns-loaded [server ns-sym]
+  (let [msg {:op :eval
+             :code (str "(ns " (:user-ns @server "user")
+                        " (:require [" ns-sym "]))")}]
+    (-> server
+        (core/message msg)
+        (parse-message-response msg))))
+
+(defn- message* [f msg]
+  (when-not (systemic/running? `*nrepl*)
+    (throw (IllegalStateException. "Not connected to nrepl")))
+
+  (-> *nrepl*
+      (p/then (fn [server]
+                (p/do!
+                  (when-let [ns-sym (:ns msg)]
+                    (ensure-ns-loaded server ns-sym))
+
+                  (f server msg)))
+              exec/default-scheduler)))
+
 
 ; ======= public interface ================================
 
