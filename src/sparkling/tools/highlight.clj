@@ -4,7 +4,9 @@
             [sparkling.nrepl :as nrepl]
             [sparkling.path :as path]))
 
-(def ^:private reserved-synax-words
+; TODO check if we can omit this now (it's a special case for vim)
+; and/or move it out of core
+(def ^:private reserved-syntax-words
   #{"contains" "oneline" "fold" "display" "extend" "concealends" "conceal"
     "cchar" "contained" "containedin" "nextgroup" "transparent" "skipwhite"'
     "skipnl" "skipempty"})
@@ -42,8 +44,8 @@
     - `:alias`   String; how the var is refer'd in the calling ns
     - `:?macro`  A symbol that *might* be the fqn of a macro"
   [locals vars-seq]
-  (let [multi-fn `#?(:cljs MultiFn
-                     :default clojure.lang.MultiFn)]
+  (let [multi-fn (symbol "#?(:cljs MultiFn
+                             :default clojure.lang.MultiFn)")]
     `(nrepl/format-code
        ~locals
        (letfn [(fn-ref?# [v#]
@@ -52,8 +54,8 @@
                        (or (fn? derefd#)
                            (instance? ~multi-fn derefd#)))))]
          (->> ~vars-seq
-           (filter (fn [{the-alias# :alias}]
-                     (not (contains? ~reserved-synax-words ~'alias))))
+           (remove (fn [{the-alias# :alias}]
+                     (contains? ~reserved-syntax-words the-alias#)))
            (map (fn [{:keys [~'var-ref ~'?macro] the-alias# :alias}]
                   (let [m# (meta ~'var-ref)
                         n# (str (or the-alias# (:name m#) ~'?macro))]
@@ -133,5 +135,6 @@
 
                 ; TODO ns-refers
                 ])
+
         (p/then' (fn [all-matches]
                    (apply merge-with concat all-matches))))))
