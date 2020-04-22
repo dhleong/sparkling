@@ -102,16 +102,36 @@
                                       "/")
                                  fqn])))))))))
 
+(defn imports [context search-ns]
+  (let [search-ns-sym (symbol search-ns)]
+    (nrepl/evaluate
+      context
+      [search-ns-sym]
+      (->> (ns-imports (quote search-ns-sym))
+           (mapcat (fn [[class-name klass]]
+                     [class-name
+                      (when-not (ifn? klass)
+                        ; in cljs, we don't have `class?`, but imports
+                        ; will be IFns instead; we cannot, sadly, use
+                        ; the #?(:cljs) syntax here...
+                        (.getName klass))]))
+           (keep identity)
+           (map (fn [class-name]
+                  {:fn [(str class-name ".")]
+                   :var [(str class-name)]}))
+           (apply merge-with concat)))))
+
 (defn types-in [uri ^String _code]
-  (let [context {:uri uri}
+  (let [context {:sparkling/context {:uri uri}}
         search-ns (path/->ns uri)]
     (-> (p/all [(public-vars-for-pairs
                   context
                   [["" search-ns]])
 
                 (aliases context search-ns)
+                (imports context search-ns)
 
                 ; TODO ns-refers
-                ; TODO imports
                 ])
-        (p/then' (partial merge-with concat)))))
+        (p/then' (fn [all-matches]
+                   (apply merge-with concat all-matches))))))
