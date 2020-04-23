@@ -76,18 +76,17 @@
   (let [ns-publics-pairs (mapv
                            (fn [[prefix search-ns]]
                              `[~prefix (ns-publics (quote ~(symbol search-ns)))])
-                           prefix-and-ns-pairs)
-        to-eval (vars->types
-                  [ns-publics-pairs]
-                  (->> ns-publics-pairs
-                       (mapcat (fn [[prefix publics]]
-                                 (->> publics
-                                      (map (fn [[var-name var-ref]]
-                                             {:alias (str prefix var-name)
-                                              :var-ref var-ref})))))))]
+                           prefix-and-ns-pairs)]
     (nrepl/evaluate*
       context
-      to-eval)))
+      (vars->types
+        [ns-publics-pairs]
+        (->> ns-publics-pairs
+             (mapcat (fn [[prefix publics]]
+                       (->> publics
+                            (map (fn [[var-name var-ref]]
+                                   {:alias (str prefix var-name)
+                                    :var-ref var-ref}))))))))))
 
 (defn aliases [context search-ns]
   (-> (nrepl/message
@@ -122,6 +121,28 @@
                   {:fn [(str class-name ".")]
                    :var [(str class-name)]}))
            (apply merge-with concat)))))
+
+(defn- refers-clj [context search-ns]
+  (let [search-ns-sym (symbol search-ns)]
+    (nrepl/evaluate*
+      context
+      (vars->types
+        [search-ns-sym]
+        (->> (ns-refers (quote search-ns-sym))
+             (map second)
+             (filter #(not= "clojure.core"
+                            (->> % meta :ns)))
+             (map (fn [var-ref]
+                    {:alias (-> var-ref meta :name)
+                     :var-ref var-ref})))))))
+
+(defn refers [context search-ns]
+  (when (= "clj" (path/extension (-> context :sparkling/context :uri)))
+    (refers-clj context search-ns)
+
+    ; TODO cljs doesn't support ns-refers support
+    )
+  )
 
 (defn types-in [uri ^String _code]
   (let [context {:sparkling/context {:uri uri}}
