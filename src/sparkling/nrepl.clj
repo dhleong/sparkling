@@ -26,10 +26,11 @@
 
     resp))
 
-(defn- ensure-ns-loaded [server ns-sym]
-  (let [msg {:op :eval
-             :code (str "(ns " (:user-ns @server "user")
-                        " (:require [" ns-sym "]))")}]
+(defn- ensure-ns-loaded [context server ns-sym]
+  (let [msg (merge context
+                   {:op :eval
+                    :code (str "(ns " (:user-ns @server "user")
+                               " (:require [" ns-sym "]))")})]
     (-> server
         (core/message msg)
         (parse-message-response msg))))
@@ -42,7 +43,12 @@
       (p/then (fn [server]
                 (p/do!
                   (when-let [ns-sym (:ns msg)]
-                    (ensure-ns-loaded server ns-sym))
+                    (ensure-ns-loaded
+                      (select-keys
+                        msg
+                        [:sparkling/context])
+                      server
+                      ns-sym))
 
                   (f server msg)))
               exec/default-scheduler)))
@@ -102,6 +108,14 @@
             (assoc m p `(pr-str ~s)))
           {}
           placeholder->symbol))))
+
+(defn ensure-ns [context ns-sym-or-string]
+  (let [context (select-keys context [:sparkling/context])
+        ns-sym (if (string? ns-sym-or-string)
+                 (symbol ns-sym-or-string)
+                 ns-sym-or-string)]
+    (-> (message* (partial ensure-ns-loaded context) ns-sym)
+        (p/then (partial parse-message-response {})))))
 
 (defmacro format-code [locals code-form]
   (code-with-var-substitution locals code-form))
