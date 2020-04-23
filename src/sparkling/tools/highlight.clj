@@ -150,9 +150,7 @@
 
                 (aliases context search-ns)
                 (imports context search-ns)
-
-                ; TODO ns-refers
-                ])
+                (refers context search-ns)])
 
         (p/then' (fn [all-matches]
                    (apply merge-with concat all-matches))))))
