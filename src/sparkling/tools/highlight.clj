@@ -6,13 +6,6 @@
             [sparkling.nrepl :as nrepl]
             [sparkling.path :as path]))
 
-; TODO check if we can omit this now (it's a special case for vim)
-; and/or move it out of core
-(def ^:private reserved-syntax-words
-  #{"contains" "oneline" "fold" "display" "extend" "concealends" "conceal"
-    "cchar" "contained" "containedin" "nextgroup" "transparent" "skipwhite"'
-    "skipnl" "skipempty"})
-
 ; special case symbol-type mappings; these might read as macros, but actually
 ; we want them to be clojureSpecial, for example
 (def ^:private specials
@@ -55,8 +48,6 @@
                          (or (fn? derefd#)
                              (instance? ~multi-fn derefd#)))))]
            (->> ~vars-seq
-             (remove (fn [{the-alias# :alias}]
-                       (contains? ~reserved-syntax-words the-alias#)))
              (map (fn [{:keys [~'var-ref ~'macro?] the-alias# :alias}]
                     (let [m# (meta ~'var-ref)
                           n# (str (or the-alias# (:name m#) ~'macro?))]
