@@ -1,5 +1,6 @@
 (ns sparkling.handlers.general
   (:require [promesa.core :as p]
+            [sparkling.util :as util]
             [systemic.core :as systemic]
             [sparkling.config :as config :refer [*project-config*]]
             [sparkling.handlers.core :refer [defhandler]]
@@ -41,7 +42,7 @@
                        :change 1}}
 
    :serverInfo {:name "sparkling"
-                :version "SNAPSHOT"}})
+                :version (util/version)}})
 
 (defhandler :initialized [params]
   (println "Client initialized!" params))

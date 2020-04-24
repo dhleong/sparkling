@@ -1,12 +1,11 @@
 (ns sparkling.core
-  (:require [clojure.java.io :as io]
-            [docopt.core :refer [docopt]]
-            [sparkling.builders.util :refer [parse-edn]]
+  (:require [docopt.core :refer [docopt]]
             [systemic.core :as systemic]
             [sparkling.config]
             [sparkling.handlers]
             [sparkling.lsp :refer [*lsp*]]
-            [sparkling.nrepl])
+            [sparkling.nrepl]
+            [sparkling.util :as util])
   (:gen-class))
 
 (defn- run-lsp []
@@ -47,11 +46,7 @@ Options:
       (or (nil? >>) (>> "--help")) (println (:doc (meta #'-main)))
       (>> "--version") (println (str "sparkling, version "
                                      ; load version from deps.edn
-                                     (or (some-> (io/resource "deps.edn")
-                                                 slurp
-                                                 parse-edn
-                                                 :version)
-                                         "SNAPSHOT")))
+                                     (util/version)))
 
       (>> "lsp") (cond
                    (>> "--stdio") (run-lsp)
