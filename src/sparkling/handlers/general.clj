@@ -31,6 +31,8 @@
 
     :completionProvider {:triggerCharacters ["/" "("]}
 
+    :documentSymbolProvider true
+
     :textDocumentSync {:openClose true
                        :didSave true
 

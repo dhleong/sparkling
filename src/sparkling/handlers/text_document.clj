@@ -8,7 +8,8 @@
             [sparkling.spec.util :refer [validate]]
             [sparkling.tools.completion :refer [suggest-complete]]
             [sparkling.tools.edit :as edit]
-            [sparkling.tools.fix :as fix]))
+            [sparkling.tools.fix :as fix]
+            [sparkling.tools.highlight :as highlight]))
 
 (def identifier-chars "([a-zA-Z._*:$!?+=<>$/-]+)")
 (def regex-identifier-tail (re-pattern (str identifier-chars "$")))
@@ -39,7 +40,7 @@
 ;; (def ^:private lsp-completion-kind-operator 24)
 ;; (def ^:private lsp-completion-kind-typeParameter 25)
 
-(def var-type->kind
+(def var-type->completion-kind
   {:function lsp-completion-kind-function
    :macro lsp-completion-kind-method
    :var lsp-completion-kind-variable
@@ -73,7 +74,7 @@
      :items (->> completions
                  (map (fn [c]
                         {:label (:candidate c)
-                         :kind (var-type->kind (keyword (:type c)))
+                         :kind (var-type->completion-kind (keyword (:type c)))
 
                          :detail (when-let [args (seq (:arglists c))]
                                    (str args))
@@ -115,3 +116,27 @@
 
     (prn "fixes=" fixes)
     (keep identity fixes)))
+
+(def ^:private lsp-symbol-kind-namespace 3)
+(def ^:private lsp-symbol-kind-class 5)
+(def ^:private lsp-symbol-kind-method 6)
+(def ^:private lsp-symbol-kind-function 12)
+(def ^:private lsp-symbol-kind-variable 13)
+
+(def ^:private highlight-kind->symbol-kind
+  {:fn lsp-symbol-kind-function
+   :macro lsp-symbol-kind-method
+   :ns lsp-symbol-kind-namespace
+   :class lsp-symbol-kind-class
+   :var lsp-symbol-kind-variable})
+
+(defhandler :textDocument/documentSymbol [{{uri :uri} :textDocument}]
+  (p/let [highlights (highlight/types-in uri (doc-state-of uri))]
+    (->> highlights
+         (mapcat (fn [[kind symbol-names]]
+                   (let [symbol-kind (highlight-kind->symbol-kind kind)]
+                     (->> symbol-names
+                          (map (fn [symbol-name]
+                                 ; TODO :location ?
+                                 {:name symbol-name
+                                  :kind symbol-kind})))))))))

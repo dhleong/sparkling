@@ -119,7 +119,7 @@
            (keep identity)
            (map (fn [class-name]
                   {:fn [(str class-name ".")]
-                   :var [(str class-name)]}))
+                   :class [(str class-name)]}))
            (apply merge-with concat)))))
 
 (defn- refers-clj [context search-ns]
