@@ -12,7 +12,8 @@
 (defn- try-detect [method config]
   (try
     (method config)
-    (catch Exception _
+    (catch Exception e
+      (println method " not found: " e)
       nil)))
 
 (defn nrepl-port [project-config]
