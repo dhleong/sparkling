@@ -85,6 +85,7 @@
         {:op :eval
          :code code
          :file (path/from-uri (:uri context))
+         :ns (path/->ns (:uri context))
          :sparkling/context context})
 
       (p/then (fn [m]
@@ -151,14 +152,16 @@
 
       forms)))
 
+(defn- evaluate-cljs-part [context part]
+  (p/let [{pos :position s :string} part
+          result (analyze-cljs-eval context s)]
+    (when (:sparkling/exception result)
+      (assoc result :sparkling/offset-position pos))))
+
 (defn- analyze-cljs-eval-each [context _relative-path code]
   (try
     (->> (cljs-parts code)
-         (map
-           (fn [{pos :position s :string}]
-             (p/let [result (analyze-cljs-eval context s)]
-               (when (:sparkling/exception result)
-                 (assoc result :sparkling/offset-position pos)))))
+         (map (partial evaluate-cljs-part context))
          p/all
          (p/map (fn [results]
                   (->> (keep identity results)
@@ -182,8 +185,8 @@
   (let [relative-path (path/relative uri)
         context {:uri uri}]
     (-> (case (path/extension uri)
-          ("clj" "cljc") (analyze-clojure context relative-path code)
-          "cljs" (analyze-cljs context relative-path code))
+          "clj" (analyze-clojure context relative-path code)
+          ("cljs" "cljc") (analyze-cljs context relative-path code))
         (p/then' (fn [v]
                    (when v
                      (println "Detected error: " v))
