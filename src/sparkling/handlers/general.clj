@@ -25,6 +25,8 @@
       ; watch the disk for changes and use that as a signal to update
       (println "TODO: watch for changes")))
 
+  (println "initializing sparkling v" (util/version))
+
   {:capabilities
    {:codeActionProvider {:codeActionKinds [""
                                            :quickfix

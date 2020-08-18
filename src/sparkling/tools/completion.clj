@@ -1,17 +1,15 @@
 (ns sparkling.tools.completion
   (:require [clojure.string :as str]
             [promesa.core :as p]
-            [sparkling.nrepl :as nrepl]))
+            [sparkling.kondo.core :as kondo]
+            [sparkling.nrepl :as nrepl]
+            [sparkling.util :as util]))
 
 (def identifier-chars "([a-zA-Z._*:$!?+=<>$/-]+)")
 (def regex-identifier-tail (re-pattern (str identifier-chars "$")))
 (def regex-identifier-head (re-pattern (str "^" identifier-chars)))
 
-(defn suggest-complete
-  "Performs an nrepl :complete request, returning a promise that
-   resolves to a sequence of suggestions. Each suggestion is a
-   map containing {:candidate, :ns, :type} and optionally
-   {:doc, arglists}, as appropriate"
+(defn- suggest-complete-nrepl
   [{:keys [document-text
            document-ns
            character
@@ -46,3 +44,26 @@
       (println "head-line = " (subs full-line character)))
 
     completions))
+
+(defn- suggest-complete-kondo
+  [{:keys [document-text
+           #_document-ns
+           #_character
+           #_line]}]
+  (p/let [analysis (kondo/analyze-string document-text)]
+    ; TODO more context based on the cursor pos
+    (for [item (:var-definitions analysis)]
+      {:candidate (:name item)
+       :type (cond
+               (:fixed-arities item) :function
+               :else :var)
+       :doc (:ns item)})))
+
+(def ^{:doc "Performs an nrepl :complete request, returning a promise that
+             resolves to a sequence of suggestions. Each suggestion is a
+             map containing {:candidate, :ns, :type} and optionally
+             {:doc, arglists}, as appropriate"}
+  suggest-complete
+  (util/fallback
+    suggest-complete-nrepl
+    suggest-complete-kondo))
