@@ -1,7 +1,7 @@
 (ns sparkling.tools.completion
   (:require [clojure.string :as str]
             [promesa.core :as p]
-            [sparkling.kondo.core :as kondo]
+            [sparkling.static.kondo :as kondo]
             [sparkling.nrepl :as nrepl]
             [sparkling.util :as util]))
 

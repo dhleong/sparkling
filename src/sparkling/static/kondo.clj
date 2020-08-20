@@ -1,4 +1,4 @@
-(ns sparkling.kondo.core
+(ns sparkling.static.kondo
   (:require [clojure.java.shell :refer [sh]]
             [promesa.core :as p]
             [sparkling.builders.util :refer [parse-edn]]))
