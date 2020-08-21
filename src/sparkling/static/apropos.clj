@@ -1,7 +1,7 @@
 (ns sparkling.static.apropos
   (:require [clojure.string :as str]
             [promesa.core :as p]
-            [sparkling.static :refer [*kondo-classpath*]]
+            [sparkling.static :refer [*kondo-classpath* *kondo-project-path*]]
             [sparkling.static.kondo :as kondo]
             [sparkling.util.promise :as promise]))
 
@@ -37,9 +37,9 @@
   ([m ns-usage]
    (assoc m (:alias ns-usage) (:to ns-usage))))
 
-(defn ns-aliases-in [{:keys [document-text root-path]}]
+(defn ns-aliases-in [{:keys [document-text]}]
   (p/plet [this-ns (kondo/analyze-string document-text)
-           project (kondo/analyze-path root-path)]
+           project *kondo-project-path*]
     (->> (concat (:namespace-usages this-ns)
                  (:namespace-usages project))
          (transduce xf-aliases->map assoc-alias->map {}))))

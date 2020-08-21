@@ -6,11 +6,12 @@
             [sparkling.handlers.core :refer [defhandler]]
             [sparkling.lsp :refer [*lsp*]]
             [sparkling.nrepl :refer [*nrepl*]]
-            [sparkling.static :refer [*kondo-classpath*]]))
+            [sparkling.static :refer [*kondo-classpath* *kondo-project-path*]]))
 
 (defhandler :initialize [{:keys [_clientInfo capabilities rootPath]}]
   (println ":initialize" capabilities)
-  (systemic/start! `*project-config* `*nrepl* `*kondo-classpath*)
+  (systemic/start! `*project-config* `*nrepl*
+                   `*kondo-classpath* `*kondo-project-path*)
 
   (let [lsp {:did-save? (get-in capabilities [:textDocument
                                               :synchronization

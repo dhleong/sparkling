@@ -16,3 +16,10 @@
    of the project classpath"
   :deps [*project-config*]
   :start (load-kondo-classpath *project-config*))
+
+(defsys *kondo-project-path*
+  "A promise that resolves to a clj-kondo-powered analysis
+   of the project root"
+  :deps [*project-config*]
+  :start (p/let [config *project-config*]
+           (kondo/analyze-path (:root-path config) (:root-path config))))
