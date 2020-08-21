@@ -4,7 +4,7 @@
             [sparkling.config :refer [*project-config*]]
             [sparkling.static.apropos :as static]
             [sparkling.nrepl :as nrepl]
-            [sparkling.util :as util]))
+            [sparkling.util.promise :as promise]))
 
 (def identifier-chars "([a-zA-Z._*:$!?+=<>$/-]+)")
 (def regex-identifier-tail (re-pattern (str identifier-chars "$")))
@@ -71,6 +71,6 @@
              map containing {:candidate, :ns, :type} and optionally
              {:doc, arglists}, as appropriate"}
   suggest-complete
-  (util/fallback
+  (promise/fallback
     suggest-complete-nrepl
     suggest-complete-kondo))

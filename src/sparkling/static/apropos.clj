@@ -2,7 +2,8 @@
   (:require [clojure.string :as str]
             [promesa.core :as p]
             [sparkling.static :refer [*kondo-classpath*]]
-            [sparkling.static.kondo :as kondo]))
+            [sparkling.static.kondo :as kondo]
+            [sparkling.util.promise :as promise]))
 
 (defn type-of-kondo [item]
   (cond
@@ -70,18 +71,21 @@
   (println "apropros: root= " root-path "query=" query)
   (let [ns-separator-idx (str/index-of query "/")
         ns-contents-query? (not (nil? ns-separator-idx))]
-    (->> [(ns-local-definitions document-text)
+    (->> [(promise/with-timing "ns-local-definitions"
+            (ns-local-definitions document-text))
 
           (when-not ns-contents-query?
-            (p/let [aliases-map (ns-aliases-in ctx)]
-              (->> aliases-map
-                   (map (fn [[the-alias target-ns]]
-                          {:candidate the-alias
-                           :type :namespace
-                           :doc (str target-ns)})))))
+            (promise/with-timing "ns-aliases-in"
+              (p/let [aliases-map (ns-aliases-in ctx)]
+                (->> aliases-map
+                     (map (fn [[the-alias target-ns]]
+                            {:candidate the-alias
+                             :type :namespace
+                             :doc (str target-ns)}))))))
 
           (when ns-contents-query?
-            (ns-alias-contents-query ctx (subs query 0 ns-separator-idx)))]
+            (promise/with-timing "ns-alias-contents-in"
+              (ns-alias-contents-query ctx (subs query 0 ns-separator-idx))))]
 
          p/all
          (p/map (fn [results]
