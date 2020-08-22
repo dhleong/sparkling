@@ -3,13 +3,15 @@
             [systemic.core :refer [defsys]]
             [sparkling.config :refer [*project-config*]]
             [sparkling.static.classpath :refer [classpath-at]]
-            [sparkling.static.kondo :as kondo]))
+            [sparkling.static.kondo :as kondo]
+            [sparkling.util.promise :as promise]))
 
 (defn- load-kondo-classpath [config-promise]
   (p/let [config config-promise
           cp (classpath-at (:root-path config))]
     (println "Analyzing kondo classpath for" config ": " cp)
-    (kondo/analyze-path (:root-path config) cp)))
+    (promise/with-timing (str "analyze kondo classpath for " config)
+      (kondo/analyze-path (:root-path config) cp))))
 
 (defsys *kondo-classpath*
   "A promise that resolves to a clj-kondo-powered analysis
@@ -21,5 +23,6 @@
   "A promise that resolves to a clj-kondo-powered analysis
    of the project root"
   :deps [*project-config*]
-  :start (p/let [config *project-config*]
-           (kondo/analyze-path (:root-path config) (:root-path config))))
+  :start (promise/with-timing "analyze project path"
+           (p/let [config *project-config*]
+             (kondo/analyze-path (:root-path config) (:root-path config)))))

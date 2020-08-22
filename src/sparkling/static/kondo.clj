@@ -3,6 +3,15 @@
             [promesa.core :as p]
             [sparkling.builders.util :refer [parse-edn]]))
 
+(defn index-kondo-analysis [analysis]
+  (-> analysis
+      (assoc :namespace->contents
+             (reduce
+               (fn [m var-def]
+                 (update m (:ns var-def) conj var-def))
+               {}
+               (:var-definitions analysis)))))
+
 (defn- analyze-sync [dir & args]
   (let [invocation (vec (concat
                           ["clj-kondo" "--cache" "true"
@@ -18,7 +27,8 @@
     (->> execution
          :out
          parse-edn
-         :analysis)))
+         :analysis
+         index-kondo-analysis)))
 
 (defn- analyze-path-sync [dir path]
   (analyze-sync dir "--lint" path))

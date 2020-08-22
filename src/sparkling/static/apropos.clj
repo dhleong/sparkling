@@ -12,8 +12,8 @@
 
 ; ======= ns-local var defs ===============================
 
-(defn ns-local-definitions [document-text]
-  (p/let [analysis (kondo/analyze-string document-text)]
+(defn ns-local-definitions [text-analysis-promise]
+  (p/let [analysis text-analysis-promise]
     ; TODO query could be:
     ; - an existing namespace alias (in this ns)
     ; - an established namespace alias (from somewhere else in the project)
@@ -37,8 +37,8 @@
   ([m ns-usage]
    (assoc m (:alias ns-usage) (:to ns-usage))))
 
-(defn ns-aliases-in [{:keys [document-text]}]
-  (p/plet [this-ns (kondo/analyze-string document-text)
+(defn ns-aliases-in [{:keys [text-analysis-promise]}]
+  (p/plet [this-ns text-analysis-promise
            project *kondo-project-path*]
     (->> (concat (:namespace-usages this-ns)
                  (:namespace-usages project))
@@ -48,16 +48,18 @@
 ; ======= contents of aliased namespace ===================
 
 (defn ns-alias-contents-query [ctx the-alias]
-  (p/let [aliases (ns-aliases-in ctx)
+  (p/let [aliases (promise/with-timing "ns-aliases-in (for contents)"
+                    (ns-aliases-in ctx))
           target-ns (get aliases (if (string? the-alias)
                                    (symbol the-alias)
                                    the-alias))
-          project-analysis *kondo-classpath*]
-    (println "alias contents in  " the-alias)
+          project-analysis *kondo-classpath*
+          in-target-ns (get-in project-analysis [:namespace->contents target-ns])]
+    (println "alias contents in  " the-alias "->" target-ns)
     (println "total found " (count (:var-definitions project-analysis)) "defs")
-    (->> project-analysis
-         :var-definitions
-         (filter #(= target-ns (:ns %)))
+    (println "in target ns " (count in-target-ns))
+    (->> in-target-ns
+
          (map (fn [item]
                 {:candidate (str the-alias "/" (:name item))
                  :type (type-of-kondo item)
@@ -67,12 +69,15 @@
 
 ; ======= primary public interface ========================
 
-(defn static-apropos [{:keys [document-text root-path] :as ctx} query]
+(defn static-apropos [{:keys [document-text root-path uri] :as ctx} query]
   (println "apropros: root= " root-path "query=" query)
   (let [ns-separator-idx (str/index-of query "/")
-        ns-contents-query? (not (nil? ns-separator-idx))]
+        ns-contents-query? (not (nil? ns-separator-idx))
+        local-analysis (promise/with-timing (str "analyze document-text @" uri)
+                         (kondo/analyze-string document-text))
+        ctx (assoc ctx :text-analysis-promise local-analysis)]
     (->> [(promise/with-timing "ns-local-definitions"
-            (ns-local-definitions document-text))
+            (ns-local-definitions local-analysis))
 
           (when-not ns-contents-query?
             (promise/with-timing "ns-aliases-in"
@@ -84,7 +89,7 @@
                              :doc (str target-ns)}))))))
 
           (when ns-contents-query?
-            (promise/with-timing "ns-alias-contents-in"
+            (promise/with-timing "ns-alias-contents-query"
               (ns-alias-contents-query ctx (subs query 0 ns-separator-idx))))]
 
          p/all
