@@ -5,6 +5,7 @@
             [sparkling.handlers]
             [sparkling.lsp :refer [*lsp*]]
             [sparkling.nrepl]
+            [sparkling.static]
             [sparkling.util :as util])
   (:gen-class))
 

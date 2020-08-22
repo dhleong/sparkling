@@ -13,7 +13,7 @@
   com.squareup.okio/okio {:mvn/version "2.5.0"}
   funcool/promesa {:mvn/version "5.1.0"}
   rewrite-clj {:mvn/version "0.6.1"}
-  teknql/systemic {:mvn/version "0.2.0-SNAPSHOT"}
+  teknql/systemic {:mvn/version "0.2.0"}
 
   com.rpl/specter {:mvn/version "1.1.3"}}
 

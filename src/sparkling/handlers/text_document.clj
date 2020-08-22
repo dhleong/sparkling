@@ -131,6 +131,7 @@
    :var lsp-symbol-kind-variable})
 
 (defhandler :textDocument/documentSymbol [{{uri :uri} :textDocument}]
+  (println "documentSymbol")
   (p/let [highlights (highlight/types-in uri (doc-state-of uri))]
     (->> highlights
          (mapcat (fn [[kind symbol-names]]
