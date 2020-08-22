@@ -36,6 +36,7 @@
 
     :completionProvider {:triggerCharacters ["/" "("]}
 
+    :definitionProvider true
     :documentSymbolProvider true
 
     :textDocumentSync {:openClose true

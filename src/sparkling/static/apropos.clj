@@ -23,7 +23,8 @@
     (for [item (:var-definitions analysis)]
       {:candidate (:name item)
        :type (type-of-kondo item)
-       :doc (:ns item)})))
+       :doc (:ns item)
+       :sparkling/definition item})))
 
 
 ; ======= ns aliases ======================================
@@ -64,7 +65,7 @@
                 {:candidate (str the-alias "/" (:name item))
                  :type (type-of-kondo item)
                  :doc (:doc item)
-                 ::raw item })))))
+                 :sparkling/definition item})))))
 
 
 ; ======= primary public interface ========================
@@ -94,4 +95,6 @@
 
          p/all
          (p/map (fn [results]
-                  (apply concat results))))))
+                  (->> results
+                       (apply concat)
+                       (filter #(str/starts-with? (:candidate %) query))))))))
