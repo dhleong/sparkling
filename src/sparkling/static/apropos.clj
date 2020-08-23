@@ -10,6 +10,12 @@
     (:fixed-arities item) :function
     :else :var))
 
+(defn- kondo-info->candidate [item]
+  {:candidate (:name item)
+   :type (type-of-kondo item)
+   :doc (:ns item)
+   :sparkling/definition item})
+
 ; ======= ns-local var defs ===============================
 
 (defn ns-local-definitions [text-analysis-promise]
@@ -20,11 +26,22 @@
     ; - a java class name
     ; - a ns/var reference
 
-    (for [item (:var-definitions analysis)]
-      {:candidate (:name item)
-       :type (type-of-kondo item)
-       :doc (:ns item)
-       :sparkling/definition item})))
+    (map kondo-info->candidate (:var-definitions analysis))))
+
+
+; ======= var usages ======================================
+
+(defn var-usages [{:keys [text-analysis-promise]}]
+  (p/plet [analysis text-analysis-promise
+           project *kondo-project-path*]
+    (->> analysis
+         :var-usages
+         (keep (fn [{declared-ns :to var-name :name}]
+                 (->> (get-in project
+                              [:namespace->contents declared-ns])
+                      (filter #(= var-name (:name %)))
+                      first)))
+         (map kondo-info->candidate))))
 
 
 ; ======= ns aliases ======================================
@@ -80,6 +97,9 @@
     (->> [(promise/with-timing "ns-local-definitions"
             (ns-local-definitions local-analysis))
 
+          (promise/with-timing "var-usages"
+            (var-usages ctx))
+
           (when-not ns-contents-query?
             (promise/with-timing "ns-aliases-in"
               (p/let [aliases-map (ns-aliases-in ctx)]
@@ -95,6 +115,7 @@
 
          p/all
          (p/map (fn [results]
+                  (println results)
                   (->> results
                        (apply concat)
                        (filter #(str/starts-with? (:candidate %) query))))))))
