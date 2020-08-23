@@ -13,23 +13,31 @@
                {}
                (:var-definitions analysis)))))
 
-(defn- analyze-sync [dir & args]
+(defn- kondo-sync [{:keys [config dir]} & args]
   (let [invocation (vec (concat
                           ["clj-kondo" "--cache" "true"
-                           "--config" (str {:output {:analysis true :format :edn}})]
+                           "--config" (str (merge-with merge
+                                                       {:output {:format :edn}}
+                                                       config))]
                           args
                           (when dir
                             [:dir dir])))
         execution (try (apply sh invocation)
                        (catch Exception e
-                         (throw (ex-info (str "Failed to invoke clj-kondo: " invocation)
+                         (throw (ex-info (str "Failed to invoke clj-kondo: "
+                                              invocation)
                                          {:invocation invocation
                                           :cause e}))))]
     (->> execution
          :out
-         parse-edn
-         :analysis
-         index-kondo-analysis)))
+         parse-edn)))
+
+(defn- analyze-sync [dir & args]
+  (->> (apply kondo-sync {:dir dir
+                          :config {:output {:analysis true}}}
+              args)
+       :analysis
+       index-kondo-analysis))
 
 (defn- analyze-path-sync [dir path]
   (analyze-sync dir "--lint" path))
@@ -45,6 +53,9 @@
 
 (defn analyze-string [s]
   (p/future (analyze-string-sync s)))
+
+(defn lint-string [dir s]
+  (p/future (kondo-sync {:dir dir} "--lint" "-" :in s)))
 
 (defn resolve-uri
   "Expects config to be the resolved value of *project-config*"

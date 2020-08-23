@@ -1,11 +1,13 @@
 (ns sparkling.handlers.text-document
   (:require [promesa.core :as p]
+            [sparkling.config :refer [*project-config*]]
             [sparkling.handlers.core :refer [defhandler]]
             [sparkling.handlers.text-sync :as text-sync :refer [*doc-state*]]
             [sparkling.lsp.fix :as lsp-fix]
             [sparkling.lsp.protocol :as protocol]
             [sparkling.path :as path]
             [sparkling.spec.util :refer [validate]]
+            [sparkling.tools.autofix :refer [find-fixes]]
             [sparkling.tools.completion :refer [suggest-complete]]
             [sparkling.tools.definition :refer [find-definition]]
             [sparkling.tools.references :refer [find-references]]
@@ -13,9 +15,8 @@
             [sparkling.tools.fix :as fix]
             [sparkling.tools.highlight :as highlight]))
 
-(def identifier-chars "([a-zA-Z._*:$!?+=<>$/-]+)")
-(def regex-identifier-tail (re-pattern (str identifier-chars "$")))
-(def regex-identifier-head (re-pattern (str "^" identifier-chars)))
+
+; ======= completion ======================================
 
 (def ^:private lsp-completion-kind-method 2)
 (def ^:private lsp-completion-kind-function 3)
@@ -82,35 +83,55 @@
                                    (str args))
                          :documentation (:doc c)})))}))
 
+
+; ======= codeAction ======================================
+
+(defn- fix->lsp-edit [{:keys [diagnostics] :as context} fix]
+  (println "found fix: " fix)
+  (p/chain
+    ; insert the current doc :text so we
+    ; can extract an edit
+    (edit/fix->edit
+      (assoc fix :text (:document-text context)))
+
+    (partial lsp-fix/->text-edit context)
+
+    (fn [text-edit]
+      {:title (:title text-edit)
+       :diagnostics diagnostics
+       :edit (validate
+               ::protocol/workspace-edit
+               (dissoc text-edit :title))})))
+
+(defn- create-fix [context diagnostic]
+  (println "Attempt to fix" (pr-str diagnostic) "...")
+  (some->>
+    (fix/extract context (:message diagnostic))
+    (partial fix->lsp-edit (assoc context :diagnostics [diagnostic]))))
+
 (defhandler :textDocument/codeAction [{{:keys [diagnostics]} :context,
                                        {uri :uri} :textDocument
+                                       {{:keys [line]} :start} :range
                                        :as req}]
   (println "Code action for" uri ": " diagnostics)
   (println " req = " req)
 
-  (p/let [context {:uri uri}
-          fixes (->> diagnostics
-                     (keep (fn [d]
-                             (println "Attempt to fix" (pr-str d) "...")
-                             (some->
-                               (fix/extract context (:message d))
-                               (p/chain
-                                 ; insert the current doc :text so we
-                                 ; can extract an edit
-                                 (fn [fix]
-                                   (println "found fix: " fix)
-                                   (edit/fix->edit
-                                     (assoc fix :text (doc-state-of uri))))
+  (p/let [config *project-config*
+          context {:uri uri
+                   :document-text (doc-state-of uri)
+                   :root-path (:root-path config)
+                   :line line}
+          fixes (if (seq diagnostics)
+                  ; we provided diagnostics that the client wants to fix
+                  (->> diagnostics
+                       (keep (partial create-fix context))
+                       (p/all))
 
-                                 (partial lsp-fix/->text-edit context)
-
-                                 (fn [text-edit]
-                                   {:title (:title text-edit)
-                                    :diagnostics [d]
-                                    :edit (validate
-                                            ::protocol/workspace-edit
-                                            (dissoc text-edit :title))})))))
-                     (p/all))
+                  ; no known diagnostics... fix lint error maybe?
+                  (p/let [fixes (find-fixes context)]
+                    (->> fixes
+                         (keep (partial fix->lsp-edit context))
+                         (p/all))))
 
           ; TODO ask client to re-check for errors after fixing
           ;; _ (text-sync/check-for-errors uri nil)
@@ -118,6 +139,9 @@
 
     (prn "fixes=" fixes)
     (keep identity fixes)))
+
+
+; ======= definition ======================================
 
 (defhandler :textDocument/definition [{{:keys [character line]} :position,
                                        {uri :uri} :textDocument}]
@@ -135,6 +159,9 @@
                   {:uri uri
                    :range {:start start
                            :end start}}))))))
+
+
+; ======= documentSymbol ==================================
 
 (def ^:private lsp-symbol-kind-namespace 3)
 (def ^:private lsp-symbol-kind-class 5)
