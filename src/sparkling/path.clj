@@ -17,7 +17,7 @@
   ([uri] (relative @*project-config* uri))
   ([project-config uri]
    (let [root-path (:root-path project-config)
-         from-root (let [root (str/index-of uri root-path)]
+         from-root (when-let [root (str/index-of uri root-path)]
                      (subs uri (+ root (count root-path))))]
      (try
        (if-let [source-paths (:source-paths project-config)]

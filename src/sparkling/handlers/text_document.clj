@@ -7,6 +7,7 @@
             [sparkling.path :as path]
             [sparkling.spec.util :refer [validate]]
             [sparkling.tools.completion :refer [suggest-complete]]
+            [sparkling.tools.definition :refer [find-definition]]
             [sparkling.tools.edit :as edit]
             [sparkling.tools.fix :as fix]
             [sparkling.tools.highlight :as highlight]))
@@ -116,6 +117,23 @@
 
     (prn "fixes=" fixes)
     (keep identity fixes)))
+
+(defhandler :textDocument/definition [{{:keys [character line]} :position,
+                                       {uri :uri} :textDocument}]
+  (p/let [doc (doc-state-of uri)
+          locations (find-definition {:document-text doc
+                                      :document-ns (path/->ns uri)
+                                      :uri uri
+                                      :character character
+                                      :line line
+                                      :sparkling/context {:uri uri}})]
+
+    (->> locations
+         (map (fn [{:keys [uri col line]}]
+                (let [start {:line line :character col}]
+                  {:uri uri
+                   :range {:start start
+                           :end start}}))))))
 
 (def ^:private lsp-symbol-kind-namespace 3)
 (def ^:private lsp-symbol-kind-class 5)
