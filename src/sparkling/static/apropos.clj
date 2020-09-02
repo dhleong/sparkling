@@ -118,4 +118,5 @@
                   (println results)
                   (->> results
                        (apply concat)
-                       (filter #(str/starts-with? (:candidate %) query))))))))
+                       (filter #(str/starts-with? (:candidate %) query))
+                       distinct))))))
