@@ -1,50 +1,40 @@
 (ns sparkling.tools.definition
-  (:require [clojure.java.io :as io]
-            [promesa.core :as p]
+  (:require [promesa.core :as p]
             [sparkling.config :refer [*project-config*]]
             [sparkling.static.apropos :refer [static-apropos]]
+            [sparkling.static.kondo :as kondo]
             [sparkling.tools.util :refer [extract-symbol-input]]
             [sparkling.util.promise :as promise]))
 
-(defn- resolve-kondo-uri [ctx config filename]
-  (println "ctx=" ctx)
-  (println "config=" config)
-  (println "filename=" filename)
-
-  (when-let [path (or (when (.isAbsolute (io/file filename))
-                        filename)
-
-                      (let [from-root (io/file (:root-path config)
-                                               filename)]
-                        (when (.exists from-root)
-                          (.getAbsolutePath from-root)))
-
-                      filename)]
-    (str "file://" path)))
-
-(defn- find-definition-kondo [{:keys [document-text
-                                      uri
-                                      character
-                                      line]
-                               :as ctx}]
+(defn kondo-definitions [{:keys [document-text
+                                 character
+                                 line]
+                          :as ctx}]
   (p/let [config *project-config*
           {:keys [match]} (extract-symbol-input
                             document-text character line)
+          _ (println "match= " match)
           results (static-apropos (assoc ctx :root-path (:root-path config))
                                   match)]
-    (println "query: " match)
-    (println "results: " (map :candidate results))
     (->> results
-         (keep :sparkling/definition)
-         (map (fn [{:keys [filename row col]}]
-                {:uri (if (= "<stdin>" filename)
-                        uri
-                        (resolve-kondo-uri ctx config filename))
-                 :line (dec row)
-                 :col col})))))
+         (keep :sparkling/definition))))
+
+(defn kondo->location [{:keys [uri]} config {:keys [filename row col]}]
+  {:uri (if (= "<stdin>" filename)
+          uri
+          (kondo/resolve-uri config filename))
+   :line (dec row)
+   :col col})
+
+(defn- find-definition-kondo [ctx]
+  (p/plet [config *project-config*
+          definitions (kondo-definitions ctx)]
+    (->> definitions
+         (map (partial kondo->location ctx config))
+         distinct)))
 
 (def ^{:doc "Returns a promise that resolves to a sequence of locations,
-             with keys :filename, :line, :col"}
+             with keys :uri, :line, :col"}
   find-definition
   (promise/fallback
     find-definition-kondo))

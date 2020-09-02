@@ -1,5 +1,6 @@
 (ns sparkling.static.kondo
-  (:require [clojure.java.shell :refer [sh]]
+  (:require [clojure.java.io :as io]
+            [clojure.java.shell :refer [sh]]
             [promesa.core :as p]
             [sparkling.builders.util :refer [parse-edn]]))
 
@@ -44,3 +45,17 @@
 
 (defn analyze-string [s]
   (p/future (analyze-string-sync s)))
+
+(defn resolve-uri
+  "Expects config to be the resolved value of *project-config*"
+  [config filename]
+  (when-let [path (or (when (.isAbsolute (io/file filename))
+                        filename)
+
+                      (let [from-root (io/file (:root-path config)
+                                               filename)]
+                        (when (.exists from-root)
+                          (.getAbsolutePath from-root)))
+
+                      filename)]
+    (str "file://" path)))
