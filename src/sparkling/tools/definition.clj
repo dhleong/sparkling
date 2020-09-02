@@ -13,7 +13,6 @@
   (p/let [config *project-config*
           {:keys [match]} (extract-symbol-input
                             document-text character line)
-          _ (println "match= " match)
           results (static-apropos (assoc ctx :root-path (:root-path config))
                                   match)]
     (->> results
