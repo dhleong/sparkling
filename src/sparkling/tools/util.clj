@@ -35,9 +35,12 @@
                                                    (subs full-line index (inc index)))
                                (reduced (inc index))))
                            character
-                           (range character 0 -1))
-        text-line (subs full-line identifier-start)
-        [_ match] (re-find regex-identifier-head text-line)]
-    {:match match
-     :full-line full-line
-     :text-line text-line}))
+                           (range character -1 -1)) ; down to and including 0
+        text-line (when identifier-start
+                    (subs full-line identifier-start))
+        [_ match] (when text-line
+                    (re-find regex-identifier-head text-line))]
+    (when match
+      {:match match
+       :full-line full-line
+       :text-line text-line})))

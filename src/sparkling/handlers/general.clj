@@ -38,6 +38,7 @@
 
     :definitionProvider true
     :documentSymbolProvider true
+    :referencesProvider true
 
     :textDocumentSync {:openClose true
                        :didSave true
