@@ -102,6 +102,7 @@
     (when lsp-edit
       {:title (:title lsp-edit)
        :diagnostics diagnostics
+       :kind :quickfix  ; anything else ?
        :edit (validate
                ::protocol/workspace-edit
                (dissoc lsp-edit :title))})))
