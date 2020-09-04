@@ -33,5 +33,40 @@
              (:end edit)))
 
       (is (= "(ns serenity.core)"
+             @(:replacement edit)))))
+
+  (testing "Shebang-aware namespace targetting"
+    (let [original (lit "#!/usr/bin/env bb"
+                        "(ns serenity.core)"
+                        ""
+                        "(println \"Hello world\")")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :op nop})]
+      (is (= {:line 1 :character 0}
+             (:start edit)))
+      (is (= {:line 1 :character 18}
+             (:end edit)))
+
+      (is (= "(ns serenity.core)"
+             @(:replacement edit)))))
+
+  (testing "Complicated shebang-aware namespace targetting"
+    (let [original (lit "#!/usr/bin/env bash"
+                        "\"exec\" \"plk\" \"-Sdeps\" \"{:deps {}}\" \"-sf\" \"$0\" \"$@\""
+                        "(ns serenity.core)"
+                        ""
+                        "(println \"Hello world\")")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :op nop})]
+      (is (= {:line 2 :character 0}
+             (:start edit)))
+      (is (= {:line 2 :character 18}
+             (:end edit)))
+
+      (is (= "(ns serenity.core)"
              @(:replacement edit))))))
 
