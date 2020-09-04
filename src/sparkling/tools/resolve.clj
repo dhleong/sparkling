@@ -47,8 +47,7 @@
 
 ; ======= missing var =====================================
 
-(defn missing-var
-  [context sym]
+(defn missing-var [context sym]
   (if-some [index (str/index-of sym "/")]
     ; try fixing ns?
     (p/let [the-alias (subs sym 0 index)
@@ -60,6 +59,9 @@
          :alias sym
          :candidates candidates}))
 
-    ; TODO refer?
-    nil
+    ; find symbols to :refer
+    ; TODO nrepl?
+    (p/let [candidates (apropos/static-apropos context sym)]
+      {:type :symbol
+       :candidates candidates})
     ))

@@ -1,8 +1,29 @@
 (ns sparkling.tools.edits.on-ns-test
   (:require [clojure.test :refer [deftest is testing]]
             [sparkling.tools.edit :refer [fix->edit]]
-            [sparkling.tools.edits.on-ns :refer [insert-require]]
+            [sparkling.tools.edits.on-ns :refer [insert-refer
+                                                 insert-require]]
             [sparkling.util :refer [lit]]))
+
+(deftest insert-refer-test
+  (testing "Create :require form"
+    (let [original (lit "(ns serenity.core)")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :namespace 'serenity.cargo
+                  :symbol 'dolls
+                  :op insert-refer})]
+      (is (= (lit "(ns serenity.core"
+                  "  (:require [serenity.cargo :refer [dolls]]))")
+             (-> edit
+                 :replacement
+                 deref)))
+      (is (= {:line 0 :character 0}
+             (:start edit)))
+      (is (= {:line 0 :character (count original)}
+             (:end edit)))))
+  )
 
 (deftest insert-require-test
   (testing "Handle strings instead of symbols"

@@ -63,7 +63,7 @@
         (println "COULD NOT FIND A PLACE TO ADD " [to-require :as as])
         require-form)))
 
-(defn- create-require [zipper to-require as]
+(defn- create-require [zipper to-require verb contents]
   (some-> zipper
           (rz/down)
           (rz/rightmost)
@@ -72,8 +72,25 @@
           (rz/append-space 2)
           (rz/right*)
           (rz/insert-right `(:require
-                              [~to-require :as ~as]))
+                              [~to-require ~verb ~contents]))
           (rz/up)))
+
+(defn insert-refer [{require-ns :namespace to-refer :symbol} zipper]
+  (let [require-ns (->sym require-ns)
+        to-refer (->sym to-refer)]
+    (or
+
+      ; TODO first, if a :refer exists already, insert into it
+      ;; (add-as-to-refer zipper to-require as)
+
+      ; TODO if not, try to insert :refer within :require
+      ;; (add-require-entry zipper to-require as)
+
+      ; if no :require, make one!
+      (create-require zipper require-ns :refer [to-refer])
+
+      ; can't change? don't destroy
+      zipper)))
 
 (defn insert-require [{to-require :namespace as :alias} zipper]
   (let [to-require (->sym to-require)
@@ -87,7 +104,7 @@
       (add-require-entry zipper to-require as)
 
       ; if no :require, make one!
-      (create-require zipper to-require as)
+      (create-require zipper to-require :as as)
 
       ; can't change? don't destroy
       zipper)))
