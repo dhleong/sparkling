@@ -16,7 +16,8 @@
        :op edits-on-ns/insert-require})))
 
 (def-fixer :missing-ns
-  {:matches [#"No such namespace: ([^ ,]+)"]}
+  {:matches [#"No such namespace: ([^ ,]+)"
+             #"Unresolved namespace ([^ .,]+)"]}
   [context sym]
   (p/let [candidates (resolve/missing-ns context sym)]
     (when candidates

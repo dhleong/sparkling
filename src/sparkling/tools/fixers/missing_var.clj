@@ -5,11 +5,14 @@
             [sparkling.tools.resolve :as resolve]))
 
 (def-fixer :missing-var
-  {:matches [#"No such var: ([^ ]+)$"]}
+  {:matches [#"No such var: ([^ ]+)$"
+             #"unresolved symbol ([^ ]+)$"]}
   [context sym]
   (p/let [resolved (resolve/missing-var context sym)]
-    (when resolved
-      (println "Fix " resolved)
+    (if resolved
       (case (:type resolved)
-        :ns (format-ns-fix resolved)))
+        :ns (format-ns-fix resolved))
+
+      (println "Unable to resolve missing var: " sym)
+      )
     ))

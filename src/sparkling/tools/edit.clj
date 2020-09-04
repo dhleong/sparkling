@@ -31,14 +31,31 @@
         zloc' (f zloc')]
     (rz/replace zloc (rz/root zloc'))))
 
+(defn- skip-comments [text]
+  (loop [offset 0
+         lines 0]
+    (if (= \( (get text offset))
+      ; found!
+      [lines (subs text offset)]
+
+      (if-let [next-offset (str/index-of text "\n" (inc offset))]
+        (recur (inc next-offset)
+               (inc lines))
+
+        [lines text]))))
+
+(defn- with-line-offset [pos line-offset]
+  (update pos :line + line-offset))
+
 (defn fix->edit [fix]
   (validate ::spec fix)
 
-  (let [document (rz/of-string (:text fix) {:track-position? true})
+  (let [[line-offset text] (skip-comments (:text fix))
+        document (rz/of-string text {:track-position? true})
         target (-> document
                    (rz/find-value rz/next (:target fix))
                    (rz/up))
-        start (node-position target)]
+        start (with-line-offset (node-position target) line-offset)]
 
     {:description (:description fix) ; forward this along
 
@@ -50,7 +67,8 @@
      :start start
      :end (or (some-> target
                       (rz/find rz/right* rz/whitespace-or-comment?)
-                      node-position)
+                      node-position
+                      (with-line-offset line-offset))
 
               (let [node-text (rz/string target)
                     lines (->> node-text

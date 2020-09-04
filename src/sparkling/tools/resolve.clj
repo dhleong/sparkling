@@ -2,7 +2,9 @@
   (:require [clojure.string :as str]
             [promesa.core :as p]
             [sparkling.nrepl :as nrepl]
-            [sparkling.path :as path]))
+            [sparkling.path :as path]
+            [sparkling.static.apropos :as apropos]
+            [sparkling.util.promise :as promise]))
 
 (defn preferred-ns-by-alias
   "Attempt to resolve the *preferred* namespace for a given alias.
@@ -22,12 +24,28 @@
                     (str/replace "/" ".")
                     symbol))))))
 
-(defn missing-ns
-  [context sym]
+(defn missing-ns-nrepl [context sym]
   ; TODO
   (preferred-ns-by-alias
     (path/->file-type (:uri context))
     sym))
+
+(defn missing-ns-static [context sym]
+  ; TODO this returns a map of alias -> ns, but doesn't handle
+  ;  duplicate aliases...
+  ; TODO suggest namespaces aliased as their namespace
+  ;  (eg: clojure.string :as string or whatever)
+  (p/let [aliases (apropos/ns-aliases-in context)]
+    (when-let [ns-in-use (get aliases (symbol sym))]
+      [ns-in-use])))
+
+(def missing-ns
+  (promise/fallback
+    missing-ns-nrepl
+    missing-ns-static))
+
+
+; ======= missing var =====================================
 
 (defn missing-var
   [context sym]
@@ -43,4 +61,5 @@
          :candidates candidates}))
 
     ; TODO refer?
+    nil
     ))

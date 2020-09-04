@@ -55,8 +55,9 @@
   ([m ns-usage]
    (assoc m (:alias ns-usage) (:to ns-usage))))
 
-(defn ns-aliases-in [{:keys [text-analysis-promise]}]
-  (p/plet [this-ns text-analysis-promise
+(defn ns-aliases-in [{:keys [text-analysis-promise document-text]}]
+  (p/plet [this-ns (or text-analysis-promise
+                       (kondo/analyze-string document-text))
            project *kondo-project-path*]
     (->> (concat (:namespace-usages this-ns)
                  (:namespace-usages project))
