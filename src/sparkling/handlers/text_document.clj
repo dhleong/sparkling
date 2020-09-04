@@ -7,7 +7,7 @@
             [sparkling.lsp.protocol :as protocol]
             [sparkling.path :as path]
             [sparkling.spec.util :refer [validate]]
-            [sparkling.tools.autofix :refer [find-fixes]]
+            [sparkling.tools.autofix :refer [find-diagnostics]]
             [sparkling.tools.completion :refer [suggest-complete]]
             [sparkling.tools.definition :refer [find-definition]]
             [sparkling.tools.references :refer [find-references]]
@@ -87,27 +87,30 @@
 ; ======= codeAction ======================================
 
 (defn- fix->lsp-edit [{:keys [diagnostics] :as context} fix]
-  (println "found fix: " fix)
-  (p/chain
-    ; insert the current doc :text so we
-    ; can extract an edit
-    (edit/fix->edit
-      (assoc fix :text (:document-text context)))
+  (p/let [fix fix
+          _ (println "found fix: " fix)
 
-    (partial lsp-fix/->text-edit context)
+          ; insert the current doc :text so we
+          ; can extract an edit
+          edit (when fix
+                 (edit/fix->edit
+                   (assoc fix :text (:document-text context))))
 
-    (fn [text-edit]
-      {:title (:title text-edit)
+          ; convert into lsp format
+          lsp-edit (when edit
+                     (lsp-fix/->text-edit context edit))]
+    (when lsp-edit
+      {:title (:title lsp-edit)
        :diagnostics diagnostics
        :edit (validate
                ::protocol/workspace-edit
-               (dissoc text-edit :title))})))
+               (dissoc lsp-edit :title))})))
 
-(defn- create-fix [context diagnostic]
+(defn- create-fix-edit [context diagnostic]
   (println "Attempt to fix" (pr-str diagnostic) "...")
   (some->>
     (fix/extract context (:message diagnostic))
-    (partial fix->lsp-edit (assoc context :diagnostics [diagnostic]))))
+    (fix->lsp-edit (assoc context :diagnostics [diagnostic]))))
 
 (defhandler :textDocument/codeAction [{{:keys [diagnostics]} :context,
                                        {uri :uri} :textDocument
@@ -124,20 +127,21 @@
           fixes (if (seq diagnostics)
                   ; we provided diagnostics that the client wants to fix
                   (->> diagnostics
-                       (keep (partial create-fix context))
+                       (keep (partial create-fix-edit context))
                        (p/all))
 
                   ; no known diagnostics... fix lint error maybe?
-                  (p/let [fixes (find-fixes context)]
+                  (p/let [fixes (find-diagnostics context)]
+                    (println "fixes=" fixes)
                     (->> fixes
-                         (keep (partial fix->lsp-edit context))
+                         (keep (partial create-fix-edit context))
                          (p/all))))
 
           ; TODO ask client to re-check for errors after fixing
           ;; _ (text-sync/check-for-errors uri nil)
           ]
 
-    (prn "fixes=" fixes)
+    (prn "edits=" fixes)
     (keep identity fixes)))
 
 
