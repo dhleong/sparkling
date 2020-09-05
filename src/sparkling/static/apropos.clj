@@ -14,7 +14,12 @@
   {:candidate (:name item)
    :type (type-of-kondo item)
    :doc (:ns item)
+   :ns (:ns item)
    :sparkling/definition item})
+
+(def ^:private xf->candidate
+  (comp
+    (map kondo-info->candidate)))
 
 ; ======= ns-local var defs ===============================
 
@@ -26,7 +31,26 @@
     ; - a java class name
     ; - a ns/var reference
 
-    (map kondo-info->candidate (:var-definitions analysis))))
+    (->> (:var-definitions analysis)
+         (transduce xf->candidate conj []))))
+
+
+; ======= var defs in classpath ===========================
+
+(defn var-definitions
+  "Return a sequence of all var definitions whose names
+   exactly match the given `sym`."
+  [_context sym]
+  (p/plet [sym (symbol sym)
+           cp *kondo-classpath*
+           project *kondo-project-path*]
+    (->> (concat (:var-definitions cp)
+                 (:var-definitions project))
+         (transduce
+           (comp
+             (filter #(= (:name %) sym))
+             xf->candidate)
+           conj []))))
 
 
 ; ======= var usages ======================================
