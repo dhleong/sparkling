@@ -10,12 +10,12 @@
         definitive? (= (count candidates) 1)]
     ; TODO how to prompt for choices?
     (when definitive?
-      (let [c (first candidates)]
+      (let [{:keys [candidate ns]} (first candidates)]
         ; FIXME: namespace, symbol, etc.
-        {:description (str "Require " c " :refer " c)
+        {:description (str "Require " ns " :refer " candidate)
          :target 'ns
-         :namespace c
-         :symbol c
+         :namespace ns
+         :symbol candidate
          :op edits-on-ns/insert-refer}))))
 
 (def-fixer :missing-var

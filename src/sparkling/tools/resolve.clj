@@ -61,7 +61,7 @@
 
     ; find symbols to :refer
     ; TODO nrepl?
-    (p/let [candidates (apropos/static-apropos context sym)]
+    (p/let [candidates (apropos/var-definitions context sym)]
       {:type :symbol
        :candidates candidates})
     ))
