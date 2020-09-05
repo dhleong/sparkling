@@ -36,7 +36,7 @@
                         first)]
       (> (compare required needle) 0))))
 
-(defn- add-require-entry [zipper to-require as]
+(defn- add-require-entry [zipper to-require verb object]
   ; TODO if to-require starts with the same top-level ns
   ; that we do, it should be grouped at the end
   (when-let [require-form (rz/find-value zipper rz/next :require)]
@@ -48,7 +48,7 @@
               (rz/left*)
               (rz/prepend-newline)
               (rz/left*)
-              (rz/insert-left `[~to-require :as ~as]))
+              (rz/insert-left `[~to-require ~verb ~object]))
 
           ; nothing to insert before; append
           (-> require-form
@@ -57,13 +57,13 @@
               (rz/right*)
               (rz/append-space (infer-indent require-form))
               (rz/right*)
-              (rz/insert-right `[~to-require :as ~as])))
+              (rz/insert-right `[~to-require ~verb ~object])))
 
         ; be non-destructive if we couldn't find a place to insert
-        (println "COULD NOT FIND A PLACE TO ADD " [to-require :as as])
+        (println "COULD NOT FIND A PLACE TO ADD " [to-require verb object])
         require-form)))
 
-(defn- create-require [zipper to-require verb contents]
+(defn- create-require [zipper to-require verb object]
   (some-> zipper
           (rz/down)
           (rz/rightmost)
@@ -72,7 +72,7 @@
           (rz/append-space 2)
           (rz/right*)
           (rz/insert-right `(:require
-                              [~to-require ~verb ~contents]))
+                              [~to-require ~verb ~object]))
           (rz/up)))
 
 (defn insert-refer [{require-ns :namespace to-refer :symbol} zipper]
@@ -83,8 +83,8 @@
       ; TODO first, if a :refer exists already, insert into it
       ;; (add-as-to-refer zipper to-require as)
 
-      ; TODO if not, try to insert :refer within :require
-      ;; (add-require-entry zipper to-require as)
+      ; if not, try to insert :refer within :require
+      (add-require-entry zipper require-ns :refer [to-refer])
 
       ; if no :require, make one!
       (create-require zipper require-ns :refer [to-refer])
@@ -101,7 +101,7 @@
       (add-as-to-refer zipper to-require as)
 
       ; if not, try to insert within :require
-      (add-require-entry zipper to-require as)
+      (add-require-entry zipper to-require :as as)
 
       ; if no :require, make one!
       (create-require zipper to-require :as as)

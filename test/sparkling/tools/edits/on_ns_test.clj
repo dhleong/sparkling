@@ -6,6 +6,26 @@
             [sparkling.util :refer [lit]]))
 
 (deftest insert-refer-test
+  (testing "Insert into :require form"
+    (let [original (lit "(ns serenity.core"
+                        "  (:require [serenity.crew :as crew]))")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :namespace 'serenity.cargo
+                  :symbol 'dolls
+                  :op insert-refer})]
+      (is (= (lit "(ns serenity.core"
+                  "  (:require [serenity.cargo :refer [dolls]]"
+                  "            [serenity.crew :as crew]))")
+             (-> edit
+                 :replacement
+                 deref)))
+      (is (= {:line 0 :character 0}
+             (:start edit)))
+      #_(is (= {:line 0 :character (count original)}
+             (:end edit)))))
+
   (testing "Create :require form"
     (let [original (lit "(ns serenity.core)")
           edit (fix->edit
@@ -18,12 +38,7 @@
                   "  (:require [serenity.cargo :refer [dolls]]))")
              (-> edit
                  :replacement
-                 deref)))
-      (is (= {:line 0 :character 0}
-             (:start edit)))
-      (is (= {:line 0 :character (count original)}
-             (:end edit)))))
-  )
+                 deref))))))
 
 (deftest insert-require-test
   (testing "Handle strings instead of symbols"
