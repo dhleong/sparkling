@@ -2,15 +2,13 @@
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [rewrite-clj.zip :as rz]
+            [sparkling.tools.fixers.spec :as fixers]
             [sparkling.spec.util :refer [validate]]))
 
 (s/def ::text string?)
-(s/def ::target symbol?)
-(s/def ::op ifn?)
 
-(s/def ::spec (s/keys :req-un [::text
-                               ::target
-                               ::op]))
+(s/def ::spec (s/and (s/keys :req-un [::text])
+                     ::fixers/fix))
 
 (defn- node-position [n]
   (try
@@ -50,36 +48,44 @@
 (defn fix->edit [fix]
   (validate ::spec fix)
 
-  (let [[line-offset text] (skip-comments (:text fix))
-        document (rz/of-string text {:track-position? true})
-        target (-> document
-                   (rz/find-value rz/next (:target fix))
-                   (rz/up))
-        start (with-line-offset (node-position target) line-offset)]
+  (if-let [target-element (:target fix)]
+    (let [[line-offset text] (skip-comments (:text fix))
+          document (rz/of-string text {:track-position? true})
+          target (-> document
+                     (rz/find-value rz/next target-element)
+                     (rz/up))
+          start (with-line-offset (node-position target) line-offset)]
 
-    {:description (:description fix) ; forward this along
+      {:description (:description fix) ; forward this along
 
-     :replacement (delay
-                    (-> target
-                        (subedit-node (partial (:op fix) fix))
-                        (rz/string)))
+       :replacement (delay
+                      (-> target
+                          (subedit-node (partial (:op fix) fix))
+                          (rz/string)))
 
-     :start start
-     :end (or (some-> target
-                      (rz/find rz/right* rz/whitespace-or-comment?)
-                      node-position
-                      (with-line-offset line-offset))
+       :start start
+       :end (or (some-> target
+                        (rz/find rz/right* rz/whitespace-or-comment?)
+                        node-position
+                        (with-line-offset line-offset))
 
-              (let [node-text (rz/string target)
-                    lines (->> node-text
-                               (filter #(= \newline %))
-                               count)]
-                (if (= lines 0)
-                  {:line (:line start)
-                   :character (count node-text)}
+                (let [node-text (rz/string target)
+                      lines (->> node-text
+                                 (filter #(= \newline %))
+                                 count)]
+                  (if (= lines 0)
+                    {:line (:line start)
+                     :character (count node-text)}
 
-                  (let [last-newline (str/last-index-of node-text "\n")
-                        last-line-length (- (count node-text)
-                                            last-newline)]
-                    {:line (+ (:line start) lines)
-                     :character last-line-length}))))}))
+                    (let [last-newline (str/last-index-of node-text "\n")
+                          last-line-length (- (count node-text)
+                                              last-newline)]
+                      {:line (+ (:line start) lines)
+                       :character last-line-length}))))})
+
+    ; just invoke the fix :op directly, I guess?
+    (do
+      ((:op fix) fix)
+
+      ; and return nil from it; there's no text edit
+      nil)))

@@ -86,32 +86,37 @@
 
 ; ======= codeAction ======================================
 
-(defn- fix->lsp-edit [{:keys [diagnostics] :as context} fix]
-  (p/let [fix fix
-          _ (println "found fix: " fix)
+(defn- fixes->lsp-edits [{:keys [diagnostics] :as context} fixes]
+  (p/let [fixes fixes
+          _ (println "found fixes: " fixes)
 
           ; insert the current doc :text so we
           ; can extract an edit
-          edit (when fix
-                 (edit/fix->edit
-                   (assoc fix :text (:document-text context))))
+          edits (when (seq fixes)
+                  (->> fixes
+                       (map #(edit/fix->edit
+                               (assoc % :text (:document-text context))))
+                       p/all))
 
           ; convert into lsp format
-          lsp-edit (when edit
-                     (lsp-fix/->text-edit context edit))]
-    (when lsp-edit
-      {:title (:title lsp-edit)
-       :diagnostics diagnostics
-       :kind :quickfix  ; anything else ?
-       :edit (validate
-               ::protocol/workspace-edit
-               (dissoc lsp-edit :title))})))
+          lsp-edits (when (seq edits)
+                     (->> edits
+                          (map (partial lsp-fix/->text-edit context))
+                          p/all))]
+    (->> lsp-edits
+         (map (fn [lsp-edit]
+                {:title (:title lsp-edit)
+                 :diagnostics diagnostics
+                 :kind :quickfix  ; anything else ?
+                 :edit (validate
+                         ::protocol/workspace-edit
+                         (dissoc lsp-edit :title))})))))
 
-(defn- create-fix-edit [context diagnostic]
+(defn- create-fix-edits [context diagnostic]
   (println "Attempt to fix" (pr-str diagnostic) "...")
   (some->>
     (fix/extract context (:message diagnostic))
-    (fix->lsp-edit (assoc context :diagnostics [diagnostic]))))
+    (fixes->lsp-edits (assoc context :diagnostics [diagnostic]))))
 
 (defhandler :textDocument/codeAction [{{:keys [diagnostics]} :context,
                                        {uri :uri} :textDocument
@@ -125,25 +130,26 @@
                    :document-text (doc-state-of uri)
                    :root-path (:root-path config)
                    :line line}
-          fixes (if (seq diagnostics)
+          edits (if (seq diagnostics)
                   ; we provided diagnostics that the client wants to fix
                   (->> diagnostics
-                       (keep (partial create-fix-edit context))
+                       (keep (partial create-fix-edits context))
                        (p/all))
 
-                  ; no known diagnostics... fix lint error maybe?
+                  ; no known diagnostics... fix lint error, maybe?
                   (p/let [fixes (find-diagnostics context)]
-                    (println "fixes=" fixes)
                     (->> fixes
-                         (keep (partial create-fix-edit context))
+                         (keep (partial create-fix-edits context))
                          (p/all))))
 
-          ; TODO ask client to re-check for errors after fixing
-          ;; _ (text-sync/check-for-errors uri nil)
-          ]
+          ; combine all the lists of fix candidates
+          edits (apply concat edits)]
 
-    (prn "edits=" fixes)
-    (keep identity fixes)))
+    ; TODO ask client to re-check for errors after fixing
+    ;; (text-sync/check-for-errors uri nil)
+
+    (prn "edits=" edits)
+    (keep identity edits)))
 
 
 ; ======= definition ======================================

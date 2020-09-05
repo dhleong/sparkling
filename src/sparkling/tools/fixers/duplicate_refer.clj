@@ -7,5 +7,8 @@
   [_context sym]
   ; NOTE: this depends on refactor-nrepl
   (println "undef" sym)
-  (nrepl/message {:op :undef
-                  :symbol sym}))
+  {:description (str "Undef " sym)
+   :op (fn undef-duplicate-refer [_]
+         (println "perform undef" sym)
+         (nrepl/message {:op :undef
+                         :symbol sym}))})

@@ -6,16 +6,14 @@
             [sparkling.tools.resolve :as resolve]))
 
 (defn format-refer-fix [resolved]
-  (let [candidates (:candidates resolved)
-        definitive? (= (count candidates) 1)]
-    ; TODO how to prompt for choices?
-    (when definitive?
-      (let [{:keys [candidate ns]} (first candidates)]
-        {:description (str "Require " ns " :refer " candidate)
-         :target 'ns
-         :namespace ns
-         :symbol candidate
-         :op edits-on-ns/insert-refer}))))
+  (let [candidates (:candidates resolved)]
+    (->> candidates
+         (map (fn [{:keys [candidate ns]}]
+                {:description (str "Require " ns " :refer " candidate)
+                 :target 'ns
+                 :namespace ns
+                 :symbol candidate
+                 :op edits-on-ns/insert-refer})))))
 
 (def-fixer :missing-var
   {:matches [#"No such var: ([^ ]+)$"
