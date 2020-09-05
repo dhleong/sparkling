@@ -11,7 +11,6 @@
     ; TODO how to prompt for choices?
     (when definitive?
       (let [{:keys [candidate ns]} (first candidates)]
-        ; FIXME: namespace, symbol, etc.
         {:description (str "Require " ns " :refer " candidate)
          :target 'ns
          :namespace ns
