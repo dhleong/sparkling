@@ -6,7 +6,93 @@
             [sparkling.util :refer [lit]]))
 
 (deftest insert-refer-test
-  (testing "Insert into :require form"
+  (testing "Insert into empty :refer"
+    ; degenerate case, but...
+    (let [original (lit "(ns serenity.core"
+                        "  (:require [serenity.cargo :refer []]))")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :namespace 'serenity.cargo
+                  :symbol 'dolls
+                  :op insert-refer})]
+      (is (= (lit "(ns serenity.core"
+                  "  (:require [serenity.cargo :refer [dolls]]))")
+             (-> edit
+                 :replacement
+                 deref)))
+      (is (= {:line 0 :character 0}
+             (:start edit)))))
+
+  (testing "Insert into existing :refer"
+    (let [original (lit "(ns serenity.core"
+                        "  (:require [serenity.cargo :refer [medicine]]))")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :namespace 'serenity.cargo
+                  :symbol 'dolls
+                  :op insert-refer})]
+      (is (= (lit "(ns serenity.core"
+                  "  (:require [serenity.cargo :refer [dolls medicine]]))")
+             (-> edit
+                 :replacement
+                 deref)))
+      (is (= {:line 0 :character 0}
+             (:start edit)))))
+
+  (testing "Insert into middle of existing :refer"
+    (let [original (lit "(ns serenity.core"
+                        "  (:require [serenity.cargo :refer [beef medicine]]))")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :namespace 'serenity.cargo
+                  :symbol 'dolls
+                  :op insert-refer})]
+      (is (= (lit "(ns serenity.core"
+                  "  (:require [serenity.cargo :refer [beef dolls medicine]]))")
+             (-> edit
+                 :replacement
+                 deref)))
+      (is (= {:line 0 :character 0}
+             (:start edit)))))
+
+  (testing "Append into existing :refer"
+    (let [original (lit "(ns serenity.core"
+                        "  (:require [serenity.cargo :refer [beef]]))")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :namespace 'serenity.cargo
+                  :symbol 'dolls
+                  :op insert-refer})]
+      (is (= (lit "(ns serenity.core"
+                  "  (:require [serenity.cargo :refer [beef dolls]]))")
+             (-> edit
+                 :replacement
+                 deref)))
+      (is (= {:line 0 :character 0}
+             (:start edit)))))
+
+  (testing "Add :refer to :as"
+    (let [original (lit "(ns serenity.core"
+                        "  (:require [serenity.cargo :as cargo]))")
+          edit (fix->edit
+                 {:text original
+                  :target 'ns
+                  :namespace 'serenity.cargo
+                  :symbol 'dolls
+                  :op insert-refer})]
+      (is (= (lit "(ns serenity.core"
+                  "  (:require [serenity.cargo :as cargo :refer [dolls]]))")
+             (-> edit
+                 :replacement
+                 deref)))
+      (is (= {:line 0 :character 0}
+             (:start edit)))))
+
+  (testing "Insert new :require entry"
     (let [original (lit "(ns serenity.core"
                         "  (:require [serenity.crew :as crew]))")
           edit (fix->edit
@@ -22,9 +108,7 @@
                  :replacement
                  deref)))
       (is (= {:line 0 :character 0}
-             (:start edit)))
-      #_(is (= {:line 0 :character (count original)}
-             (:end edit)))))
+             (:start edit)))))
 
   (testing "Create :require form"
     (let [original (lit "(ns serenity.core)")
