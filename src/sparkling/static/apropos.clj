@@ -13,7 +13,8 @@
 (defn- kondo-info->candidate [item]
   {:candidate (:name item)
    :type (type-of-kondo item)
-   :doc (:ns item)
+   :doc (or (:doc item)
+            (:ns item))
    :ns (:ns item)
    :sparkling/definition item})
 
@@ -132,7 +133,8 @@
                      (map (fn [[the-alias target-ns]]
                             {:candidate the-alias
                              :type :namespace
-                             :doc (str target-ns)}))))))
+                             :doc (str "(:require [" target-ns
+                                       " :as " the-alias "])")}))))))
 
           (when ns-contents-query?
             (promise/with-timing "ns-alias-contents-query"
