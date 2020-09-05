@@ -1,6 +1,7 @@
 (ns sparkling.static.kondo
   (:require [clojure.java.io :as io]
             [clojure.java.shell :refer [sh]]
+            [clojure.string :as str]
             [promesa.core :as p]
             [sparkling.builders.util :refer [parse-edn]]))
 
@@ -70,3 +71,8 @@
 
                       filename)]
     (str "file://" path)))
+
+(defn version []
+  (p/future (->> (sh "clj-kondo" "--version")
+                 :out
+                 str/trimr)))
